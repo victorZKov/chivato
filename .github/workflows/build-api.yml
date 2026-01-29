@@ -42,7 +42,7 @@ jobs:
         run: dotnet publish src/api/Chivato.Api/Chivato.Api.csproj --configuration Release --output ./publish/api
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: api-artifact
           path: ./publish/api

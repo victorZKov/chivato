@@ -38,7 +38,7 @@ jobs:
         run: dotnet publish src/worker/Chivato.Worker/Chivato.Worker.csproj --configuration Release --output ./publish/worker
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: worker-artifact
           path: ./publish/worker
