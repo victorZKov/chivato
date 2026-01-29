@@ -48,7 +48,7 @@ jobs:
 
       # Build and push API
       - name: Build and push API image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./src
           file: ./src/api/Dockerfile
@@ -61,7 +61,7 @@ jobs:
 
       # Build and push Worker
       - name: Build and push Worker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./src
           file: ./src/worker/Dockerfile
@@ -92,7 +92,7 @@ jobs:
           VITE_SIGNALR_URL: ${{ vars.VITE_SIGNALR_URL }}
 
       - name: Build and push UI image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./src/ui
           file: ./src/ui/Dockerfile
