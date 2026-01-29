@@ -1,0 +1,237 @@
+{
+  "common": {
+    "appName": "Chivato",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "ok": "Aceptar",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "actions": "Acciones",
+    "status": "Estado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "name": "Nombre",
+    "description": "Descripción",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "noData": "No hay datos disponibles",
+    "retry": "Reintentar",
+    "refresh": "Actualizar",
+    "select": "Seleccionar"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "loginWith": "Iniciar sesión con Microsoft",
+    "welcome": "Bienvenido",
+    "notAuthenticated": "No estás autenticado",
+    "pleaseLogin": "Por favor inicia sesión para continuar"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "pipelines": "Pipelines",
+    "billing": "Facturación",
+    "configuration": "Configuración"
+  },
+  "theme": {
+    "title": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "language": {
+    "title": "Idioma",
+    "en": "Inglés",
+    "es": "Español"
+  },
+  "roles": {
+    "admin": "Admin",
+    "user": "Usuario"
+  },
+  "time": {
+    "minutesAgo": "Hace {{count}} minutos",
+    "hoursAgo": "Hace {{count}} horas",
+    "daysAgo": "Hace {{count}} días",
+    "weeksAgo": "Hace {{count}} semanas"
+  },
+  "severity": {
+    "critical": "Crítico",
+    "high": "Alto",
+    "medium": "Medio",
+    "low": "Bajo",
+    "info": "Info"
+  },
+  "credentials": {
+    "title": "Estado de Credenciales",
+    "daysRemaining": "{{count}} días restantes"
+  },
+  "driftExamples": {
+    "appServiceSku": "App Service SKU cambió de P1V2 a B1",
+    "storageRedundancy": "Drift de redundancia en Storage Account (LRS → GRS)",
+    "missingTags": "Tags faltantes en Resource Group",
+    "diagnosticsDisabled": "Configuración de diagnóstico deshabilitada"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "welcome": "Bienvenido a Chivato",
+    "subtitle": "Monitor de Drift de Infraestructura",
+    "stats": {
+      "totalPipelines": "Pipelines Totales",
+      "activePipelines": "Pipelines Activos",
+      "driftDetected": "Drift Detectado",
+      "lastScan": "Último Escaneo"
+    },
+    "recentDrifts": "Drifts Recientes",
+    "noDrifts": "No se detectaron drifts",
+    "viewAll": "Ver Todos"
+  },
+  "pipelines": {
+    "title": "Pipelines",
+    "subtitle": "Gestionar pipelines monitoreados",
+    "addPipeline": "Agregar Pipeline",
+    "noPipelines": "No hay pipelines configurados",
+    "addFirst": "Agrega tu primer pipeline para comenzar a monitorear",
+    "never": "Nunca",
+    "noDrift": "Sin drift",
+    "driftCountLabel": "{{count}} desviaciones",
+    "addedCount": "Se agregaron {{count}} pipelines para monitoreo",
+    "table": {
+      "name": "Nombre",
+      "project": "Proyecto",
+      "connection": "Conexión",
+      "status": "Estado",
+      "lastScan": "Último Escaneo",
+      "driftCount": "Drifts"
+    },
+    "modal": {
+      "addTitle": "Agregar Pipeline",
+      "editTitle": "Editar Pipeline",
+      "selectConnection": "Seleccionar Conexión ADO",
+      "selectProject": "Seleccionar Proyecto",
+      "selectPipelines": "Seleccionar Pipelines",
+      "loadingProjects": "Cargando proyectos...",
+      "loadingPipelines": "Cargando pipelines...",
+      "noPipelinesFound": "No se encontraron pipelines"
+    },
+    "actions": {
+      "activate": "Activar",
+      "deactivate": "Desactivar",
+      "delete": "Eliminar",
+      "scan": "Escanear Ahora"
+    },
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este pipeline?",
+    "deleteWarning": "Esta acción no se puede deshacer."
+  },
+  "configuration": {
+    "title": "Configuración",
+    "subtitle": "Ajustes del sistema",
+    "tabs": {
+      "connections": "Conexiones",
+      "timer": "Temporizador",
+      "recipients": "Destinatarios",
+      "ai": "Configuración IA"
+    },
+    "connections": {
+      "title": "Conexiones",
+      "azure": "Conexiones Azure",
+      "ado": "Conexiones Azure DevOps",
+      "addAzure": "Agregar Conexión Azure",
+      "addAdo": "Agregar Conexión ADO",
+      "noConnections": "No hay conexiones configuradas",
+      "testConnection": "Probar Conexión",
+      "connectionSuccess": "Conexión exitosa",
+      "connectionFailed": "Conexión fallida"
+    },
+    "timer": {
+      "title": "Temporizador de Escaneo",
+      "description": "Configura la frecuencia del escaneo de drift",
+      "interval": "Intervalo de Escaneo",
+      "intervals": {
+        "1h": "Cada hora",
+        "6h": "Cada 6 horas",
+        "12h": "Cada 12 horas",
+        "24h": "Cada 24 horas",
+        "48h": "Cada 48 horas",
+        "168h": "Semanal"
+      }
+    },
+    "recipients": {
+      "title": "Destinatarios de Email",
+      "description": "Configura quién recibe los reportes de drift",
+      "addRecipient": "Agregar Destinatario",
+      "email": "Dirección de Email",
+      "noRecipients": "No hay destinatarios configurados"
+    },
+    "ai": {
+      "title": "Configuración de IA",
+      "description": "Configura los ajustes de Azure AI Foundry",
+      "endpoint": "Endpoint",
+      "deployment": "Deployment",
+      "apiKey": "API Key"
+    }
+  },
+  "billing": {
+    "title": "Facturación",
+    "subtitle": "Gestiona tu suscripción",
+    "currentPlan": "Plan Actual",
+    "freePlan": "Plan Gratuito",
+    "proPlan": "Plan Pro",
+    "enterprisePlan": "Plan Enterprise",
+    "upgrade": "Mejorar",
+    "downgrade": "Reducir",
+    "cancel": "Cancelar Suscripción",
+    "features": "Características",
+    "price": "Precio",
+    "perMonth": "/mes",
+    "invoices": {
+      "title": "Facturas",
+      "date": "Fecha",
+      "amount": "Monto",
+      "status": "Estado",
+      "download": "Descargar",
+      "paid": "Pagado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "subscription": {
+      "title": "Suscripción",
+      "status": "Estado",
+      "nextBilling": "Próxima Facturación",
+      "paymentMethod": "Método de Pago"
+    }
+  },
+  "modal": {
+    "confirm": {
+      "title": "Confirmar Acción",
+      "defaultMessage": "¿Estás seguro de que quieres continuar?"
+    },
+    "alert": {
+      "title": "Alerta"
+    },
+    "prompt": {
+      "title": "Entrada Requerida"
+    }
+  },
+  "errors": {
+    "generic": "Ocurrió un error",
+    "network": "Error de red. Por favor verifica tu conexión.",
+    "unauthorized": "No estás autorizado para realizar esta acción",
+    "notFound": "El recurso solicitado no fue encontrado",
+    "validation": "Por favor verifica el formulario",
+    "loadFailed": "Error al cargar datos",
+    "saveFailed": "Error al guardar cambios",
+    "deleteFailed": "Error al eliminar"
+  }
+}

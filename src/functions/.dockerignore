@@ -1,0 +1,19 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local settings (secrets)
+local.settings.json
+
+# Logs
+*.log
+
+# Test results
+TestResults/

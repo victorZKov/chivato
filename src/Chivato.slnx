@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/api/">
+    <Project Path="api/Chivato.Api/Chivato.Api.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/Chivato.Shared/Chivato.Shared.csproj" />
+  </Folder>
+</Solution>

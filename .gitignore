@@ -1,0 +1,53 @@
+# Build outputs
+bin/
+obj/
+out/
+publish/
+
+# IDE
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+
+# User secrets
+secrets.json
+appsettings.*.local.json
+
+# Node modules
+node_modules/
+dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Package manager locks (optional, comment if you want them tracked)
+# package-lock.json
+
+# Test results
+TestResults/
+coverage/
+
+# Azure Functions local settings
+local.settings.json

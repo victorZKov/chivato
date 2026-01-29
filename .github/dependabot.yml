@@ -1,0 +1,76 @@
+version: 2
+updates:
+  # .NET dependencies (API and Worker)
+  - package-ecosystem: "nuget"
+    directory: "/src/api/Chivato.Api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "component:api"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/worker/Chivato.Worker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "component:worker"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/shared/Chivato.Shared"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "component:api"
+      - "component:worker"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+
+  # npm dependencies (UI)
+  - package-ecosystem: "npm"
+    directory: "/src/ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "component:ui"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+
+  # Terraform dependencies
+  - package-ecosystem: "terraform"
+    directory: "/src/devops/terraform"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "component:infra"
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 3
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "component:infra"
+    commit-message:
+      prefix: "chore(deps)"

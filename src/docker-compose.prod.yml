@@ -1,0 +1,60 @@
+# ==========================================
+# Chivato - Docker Compose Production
+# ==========================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+# ==========================================
+
+services:
+  # ==========================================
+  # API - Azure Functions Backend
+  # ==========================================
+  api:
+    build:
+      context: ./functions
+      dockerfile: Dockerfile
+    container_name: chivato-api
+    ports:
+      - "7071:80"
+    environment:
+      - AzureWebJobsStorage=${AZURE_STORAGE_CONNECTION_STRING}
+      - StorageConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
+      - FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
+      - AzureAd__TenantId=${AZURE_TENANT_ID}
+      - AzureAd__ClientId=${AZURE_CLIENT_ID}
+      - AzureAd__Audience=${AZURE_AUDIENCE}
+      - KeyVaultUrl=${AZURE_KEYVAULT_URL}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPINSIGHTS_CONNECTION_STRING}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # UI - Nginx serving static files
+  # ==========================================
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_ENTRA_CLIENT_ID=${AZURE_CLIENT_ID}
+        - VITE_ENTRA_TENANT_ID=${AZURE_TENANT_ID}
+        - VITE_API_URL=${API_URL:-http://localhost:7071/api}
+        - VITE_REDIRECT_URI=${REDIRECT_URI:-http://localhost:5280/}
+    container_name: chivato-ui
+    ports:
+      - "5280:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  default:
+    name: chivato-network

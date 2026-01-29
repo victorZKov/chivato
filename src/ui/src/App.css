@@ -1,0 +1,78 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: var(--space-4);
+}
+
+.login-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: var(--space-8);
+}
+
+.login-logo {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.login-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--brand-primary);
+  margin-bottom: var(--space-2);
+}
+
+.login-body {
+  margin-bottom: var(--space-8);
+}
+
+.login-body p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+  line-height: 1.6;
+}
+
+.btn-large {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  width: 100%;
+}
+
+.login-footer {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-4);
+}
+
+.login-footer p {
+  font-size: var(--text-sm);
+}
+
+/* Placeholder Pages */
+.placeholder-page {
+  text-align: center;
+  padding: var(--space-16) var(--space-4);
+}
+
+.placeholder-page h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-2);
+}
+
+.placeholder-page .coming-soon {
+  font-size: var(--text-xl);
+  margin-top: var(--space-8);
+  color: var(--brand-primary);
+}

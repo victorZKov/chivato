@@ -1,0 +1,28 @@
+.language-selector {
+  display: flex;
+  align-items: center;
+}
+
+.language-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  transition: background-color 0.2s;
+}
+
+.language-toggle:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.language-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.language-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}

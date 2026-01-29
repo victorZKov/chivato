@@ -1,0 +1,32 @@
+# Automatic PR labeling based on changed files
+# Used with actions/labeler
+
+component:api:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/api/**'
+      - 'src/shared/**'
+
+component:worker:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/worker/**'
+      - 'src/shared/**'
+
+component:ui:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/ui/**'
+
+component:infra:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/devops/terraform/**'
+      - '.github/**'
+      - 'docker-compose*.yml'
+
+component:docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**'

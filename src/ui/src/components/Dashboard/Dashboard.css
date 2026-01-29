@@ -1,0 +1,151 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.dashboard-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-2);
+}
+
+/* Metrics */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+}
+
+.metric-icon {
+  font-size: var(--text-3xl);
+}
+
+.metric-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+}
+
+.metric-title {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.metric-critical .metric-value {
+  color: var(--severity-critical);
+}
+
+.metric-high .metric-value {
+  color: var(--severity-high);
+}
+
+.metric-medium .metric-value {
+  color: var(--severity-medium);
+}
+
+.metric-ok .metric-value {
+  color: var(--success);
+}
+
+/* Sections */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.section-header h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+/* Drift List */
+.drift-section {
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--border-default);
+}
+
+.drift-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.drift-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+}
+
+.drift-description {
+  font-size: var(--text-sm);
+}
+
+.drift-pipeline {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.drift-timestamp {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Credentials */
+.credentials-section {
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--border-default);
+}
+
+.credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-4);
+}
+
+.credential-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+}
+
+.credential-name {
+  font-weight: var(--font-medium);
+}
+
+@media (max-width: 768px) {
+  .drift-item {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}
