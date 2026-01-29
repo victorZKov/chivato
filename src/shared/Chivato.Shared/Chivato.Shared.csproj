@@ -21,7 +21,7 @@
     <PackageReference Include="Azure.ResourceManager" Version="1.13.0" />
 
     <!-- SignalR -->
-    <PackageReference Include="Microsoft.Azure.SignalR.Management" Version="1.25.0" />
+    <PackageReference Include="Microsoft.Azure.SignalR.Management" Version="1.32.0" />
 
     <!-- Billing -->
     <PackageReference Include="Mollie.Api" Version="4.8.0" />
