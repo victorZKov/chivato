@@ -9,33 +9,40 @@ namespace Chivato.Api.Services;
 public class CurrentUser : ICurrentUser
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IWebHostEnvironment _environment;
 
-    public CurrentUser(IHttpContextAccessor httpContextAccessor)
+    // Default values for development
+    private const string DevTenantId = "dev-tenant-00000000-0000-0000-0000-000000000000";
+    private const string DevUserId = "dev-user-00000000-0000-0000-0000-000000000000";
+
+    public CurrentUser(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment environment)
     {
         _httpContextAccessor = httpContextAccessor;
+        _environment = environment;
     }
 
     private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
+    private bool IsDevelopment => _environment.IsDevelopment();
 
     public string UserId => User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User?.FindFirst("oid")?.Value
-        ?? throw new InvalidOperationException("User ID not found");
+        ?? (IsDevelopment ? DevUserId : throw new InvalidOperationException("User ID not found"));
 
     public string TenantId => User?.FindFirst("tid")?.Value
         ?? User?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value
-        ?? throw new InvalidOperationException("Tenant ID not found");
+        ?? (IsDevelopment ? DevTenantId : throw new InvalidOperationException("Tenant ID not found"));
 
     public string Email => User?.FindFirst(ClaimTypes.Email)?.Value
         ?? User?.FindFirst("preferred_username")?.Value
-        ?? string.Empty;
+        ?? (IsDevelopment ? "dev@chivato.local" : string.Empty);
 
     public string Name => User?.FindFirst(ClaimTypes.Name)?.Value
         ?? User?.FindFirst("name")?.Value
-        ?? string.Empty;
+        ?? (IsDevelopment ? "Developer" : string.Empty);
 
-    public bool IsAdmin => Roles.Contains("Admin");
+    public bool IsAdmin => IsDevelopment || Roles.Contains("Admin");
 
     public IReadOnlyList<string> Roles => User?.FindAll(ClaimTypes.Role)
         .Select(c => c.Value)
-        .ToList() ?? new List<string>();
+        .ToList() ?? (IsDevelopment ? new List<string> { "Admin" } : new List<string>());
 }

@@ -37,6 +37,11 @@ public static class ServiceCollectionExtensions
             services.AddSingleton(_ => new SecretClient(new Uri(options.KeyVaultUrl), new DefaultAzureCredential()));
             services.AddSingleton<IKeyVaultService, KeyVaultService>();
         }
+        else
+        {
+            // Mock for development
+            services.AddSingleton<IKeyVaultService, MockKeyVaultService>();
+        }
 
         // Azure Resource Manager
         services.AddSingleton(_ => new ArmClient(new DefaultAzureCredential()));
@@ -47,6 +52,11 @@ public static class ServiceCollectionExtensions
         {
             services.AddSingleton(_ => new ServiceBusClient(options.ServiceBusConnectionString));
             services.AddSingleton<IMessageQueueService, MessageQueueService>();
+        }
+        else
+        {
+            // Mock for development
+            services.AddSingleton<IMessageQueueService, MockMessageQueueService>();
         }
 
         // Azure SignalR
@@ -97,6 +107,21 @@ public static class ServiceCollectionExtensions
         return services.AddInfrastructure(new InfrastructureOptions
         {
             StorageConnectionString = storageConnectionString
+        });
+    }
+
+    /// <summary>
+    /// Overload for development with storage and service bus connections
+    /// </summary>
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        string storageConnectionString,
+        string serviceBusConnectionString)
+    {
+        return services.AddInfrastructure(new InfrastructureOptions
+        {
+            StorageConnectionString = storageConnectionString,
+            ServiceBusConnectionString = serviceBusConnectionString
         });
     }
 }
