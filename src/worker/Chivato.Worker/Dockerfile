@@ -2,7 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy project files
+# Copy project files for restore
+COPY core/Chivato.Domain/Chivato.Domain.csproj core/Chivato.Domain/
+COPY core/Chivato.Application/Chivato.Application.csproj core/Chivato.Application/
+COPY core/Chivato.Infrastructure/Chivato.Infrastructure.csproj core/Chivato.Infrastructure/
+COPY infrastructure/Chivato.Infrastructure/Chivato.Infrastructure.csproj infrastructure/Chivato.Infrastructure/
 COPY shared/Chivato.Shared/Chivato.Shared.csproj shared/Chivato.Shared/
 COPY worker/Chivato.Worker/Chivato.Worker.csproj worker/Chivato.Worker/
 
@@ -10,6 +14,10 @@ COPY worker/Chivato.Worker/Chivato.Worker.csproj worker/Chivato.Worker/
 RUN dotnet restore worker/Chivato.Worker/Chivato.Worker.csproj
 
 # Copy source code
+COPY core/Chivato.Domain/ core/Chivato.Domain/
+COPY core/Chivato.Application/ core/Chivato.Application/
+COPY core/Chivato.Infrastructure/ core/Chivato.Infrastructure/
+COPY infrastructure/Chivato.Infrastructure/ infrastructure/Chivato.Infrastructure/
 COPY shared/Chivato.Shared/ shared/Chivato.Shared/
 COPY worker/Chivato.Worker/ worker/Chivato.Worker/
 
@@ -23,10 +31,6 @@ RUN dotnet publish worker/Chivato.Worker/Chivato.Worker.csproj -c Release -o /ap
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
-
-# Health check - worker exposes health endpoint via Microsoft.Extensions.Diagnostics.HealthChecks
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD dotnet Chivato.Worker.dll --health-check || exit 1
 
 COPY --from=publish /app/publish .
 

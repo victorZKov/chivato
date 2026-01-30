@@ -8,11 +8,13 @@ var builder = Host.CreateApplicationBuilder(args);
 // Configuration
 var storageConnectionString = builder.Configuration["StorageConnectionString"]
     ?? "UseDevelopmentStorage=true";
-var serviceBusConnectionString = builder.Configuration["ServiceBusConnectionString"]
-    ?? throw new InvalidOperationException("ServiceBusConnectionString is required");
+var serviceBusConnectionString = builder.Configuration["ServiceBusConnectionString"];
 var keyVaultUrl = builder.Configuration["KeyVaultUrl"]
     ?? "https://local-keyvault.vault.azure.net/";
 var signalRConnectionString = builder.Configuration["AzureSignalRConnectionString"];
+
+// Determine which message consumer to use
+var useServiceBus = !string.IsNullOrEmpty(serviceBusConnectionString);
 
 // Register shared services
 builder.Services.AddSingleton<IStorageService>(_ => new StorageService(storageConnectionString));
@@ -46,15 +48,29 @@ else
 // Register processors
 builder.Services.AddSingleton<IDriftAnalysisProcessor, DriftAnalysisProcessor>();
 
-// Register Service Bus handler as hosted service
-builder.Services.AddSingleton(sp => new DriftAnalysisMessageHandler(
-    serviceBusConnectionString,
-    sp.GetRequiredService<IDriftAnalysisProcessor>(),
-    sp.GetRequiredService<IStorageService>(),
-    sp.GetRequiredService<ISignalRService>(),
-    sp.GetRequiredService<ILogger<DriftAnalysisMessageHandler>>()
-));
-builder.Services.AddHostedService(sp => sp.GetRequiredService<DriftAnalysisMessageHandler>());
+// Register message consumer as hosted service
+// Use Service Bus for production, Storage Queue for development
+if (useServiceBus)
+{
+    builder.Services.AddSingleton<IMessageConsumer>(sp => new ServiceBusMessageConsumer(
+        serviceBusConnectionString!,
+        sp.GetRequiredService<IDriftAnalysisProcessor>(),
+        sp.GetRequiredService<IStorageService>(),
+        sp.GetRequiredService<ISignalRService>(),
+        sp.GetRequiredService<ILogger<ServiceBusMessageConsumer>>()
+    ));
+}
+else
+{
+    builder.Services.AddSingleton<IMessageConsumer>(sp => new StorageQueueConsumer(
+        storageConnectionString,
+        sp.GetRequiredService<IDriftAnalysisProcessor>(),
+        sp.GetRequiredService<IStorageService>(),
+        sp.GetRequiredService<ISignalRService>(),
+        sp.GetRequiredService<ILogger<StorageQueueConsumer>>()
+    ));
+}
+builder.Services.AddHostedService(sp => (BackgroundService)sp.GetRequiredService<IMessageConsumer>());
 
 // Application Insights
 if (!string.IsNullOrEmpty(builder.Configuration["ApplicationInsights:ConnectionString"]))
@@ -71,6 +87,7 @@ var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Chivato Worker starting...");
 logger.LogInformation("Storage: {Storage}", storageConnectionString.Contains("Development") ? "Azurite" : "Azure");
+logger.LogInformation("Queue: {Queue}", useServiceBus ? "Azure Service Bus" : "Azure Storage Queue (Azurite)");
 logger.LogInformation("SignalR: {SignalR}", string.IsNullOrEmpty(signalRConnectionString) ? "Mock" : "Azure");
 
 host.Run();

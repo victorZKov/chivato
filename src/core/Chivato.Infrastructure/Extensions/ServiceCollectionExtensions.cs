@@ -8,6 +8,7 @@ using Chivato.Infrastructure.Repositories;
 using Chivato.Infrastructure.Services;
 using Microsoft.Azure.SignalR.Management;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Chivato.Infrastructure.Extensions;
 
@@ -47,15 +48,24 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(_ => new ArmClient(new DefaultAzureCredential()));
         services.AddSingleton<IAzureResourceService, AzureResourceService>();
 
-        // Azure Service Bus
+        // Message Queue Service
         if (!string.IsNullOrEmpty(options.ServiceBusConnectionString))
         {
+            // Production: Azure Service Bus
             services.AddSingleton(_ => new ServiceBusClient(options.ServiceBusConnectionString));
             services.AddSingleton<IMessageQueueService, MessageQueueService>();
         }
+        else if (!string.IsNullOrEmpty(options.StorageConnectionString))
+        {
+            // Development: Azure Storage Queue (works with Azurite)
+            services.AddSingleton<IMessageQueueService>(sp =>
+                new StorageQueueMessageService(
+                    options.StorageConnectionString,
+                    sp.GetRequiredService<ILogger<StorageQueueMessageService>>()));
+        }
         else
         {
-            // Mock for development
+            // Fallback: Mock service (logs only)
             services.AddSingleton<IMessageQueueService, MockMessageQueueService>();
         }
 

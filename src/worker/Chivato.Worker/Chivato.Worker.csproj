@@ -23,6 +23,9 @@
     <!-- Azure Service Bus -->
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
 
+    <!-- Azure Storage Queues (for development with Azurite) -->
+    <PackageReference Include="Azure.Storage.Queues" Version="12.20.0" />
+
     <!-- Application Insights -->
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
 
