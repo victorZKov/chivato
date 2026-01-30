@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   AuthenticatedTemplate,
   UnauthenticatedTemplate,
+  useMsal,
 } from "@azure/msal-react";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./components/Dashboard";
@@ -12,6 +13,7 @@ import { Configuration } from "./components/Configuration";
 import { DriftHistory } from "./components/DriftHistory/DriftHistory";
 import { ScanLogs } from "./components/ScanLogs/ScanLogs";
 import { Credentials } from "./components/Credentials/Credentials";
+import { NotificationsProvider } from "./contexts/NotificationsContext";
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
@@ -85,7 +87,7 @@ function Router() {
   // Route to component
   if (path.startsWith("/pipelines/") && path !== "/pipelines/") {
     const pipelineId = path.split("/pipelines/")[1];
-    return <PipelineDetail key={pipelineId} />;
+    return <PipelineDetail key={pipelineId} id={pipelineId} />;
   }
 
   switch (path) {
@@ -106,13 +108,24 @@ function Router() {
   }
 }
 
+function AuthenticatedApp() {
+  const { accounts } = useMsal();
+  const tenantId = accounts[0]?.tenantId;
+
+  return (
+    <NotificationsProvider tenantId={tenantId} autoConnect={true}>
+      <Layout>
+        <Router />
+      </Layout>
+    </NotificationsProvider>
+  );
+}
+
 function App() {
   return (
     <>
       <AuthenticatedTemplate>
-        <Layout>
-          <Router />
-        </Layout>
+        <AuthenticatedApp />
       </AuthenticatedTemplate>
 
       <UnauthenticatedTemplate>

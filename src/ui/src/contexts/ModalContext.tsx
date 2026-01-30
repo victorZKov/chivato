@@ -1,5 +1,6 @@
-import { createContext, useContext, type ReactNode } from "react";
-import { useModal, type ModalState } from "../hooks/useModal";
+import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
+import { useModal } from "../hooks/useModal";
 import { ConfirmDialog, AlertDialog, PromptDialog } from "../components/common/Modal";
 
 interface ModalContextValue {
