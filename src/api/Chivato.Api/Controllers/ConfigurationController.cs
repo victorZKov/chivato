@@ -1,5 +1,6 @@
-using Chivato.Shared.Models;
-using Chivato.Shared.Services;
+using Chivato.Application.Commands.Configuration;
+using Chivato.Application.Queries.Configuration;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Chivato.Api.Controllers;
@@ -8,297 +9,195 @@ namespace Chivato.Api.Controllers;
 [Route("api/config")]
 public class ConfigurationController : ControllerBase
 {
-    private readonly IStorageService _storageService;
-    private readonly IKeyVaultService _keyVaultService;
+    private readonly IMediator _mediator;
     private readonly ILogger<ConfigurationController> _logger;
 
-    public ConfigurationController(
-        IStorageService storageService,
-        IKeyVaultService keyVaultService,
-        ILogger<ConfigurationController> logger)
+    public ConfigurationController(IMediator mediator, ILogger<ConfigurationController> logger)
     {
-        _storageService = storageService;
-        _keyVaultService = keyVaultService;
+        _mediator = mediator;
         _logger = logger;
     }
 
     // Timer Configuration
     [HttpGet("timer")]
-    public async Task<IActionResult> GetTimerConfig()
+    [ProducesResponseType(typeof(ConfigurationDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetConfiguration()
     {
-        var interval = await _storageService.GetConfigValueAsync("timer_interval");
-        var enabled = await _storageService.GetConfigValueAsync("timer_enabled");
-
-        return Ok(new
-        {
-            intervalHours = int.TryParse(interval, out var h) ? h : 24,
-            isEnabled = bool.TryParse(enabled, out var e) && e
-        });
+        var result = await _mediator.Send(new GetConfigurationQuery());
+        return Ok(result);
     }
 
     [HttpPut("timer")]
-    public async Task<IActionResult> UpdateTimerConfig([FromBody] TimerConfigInput input)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateTimer([FromBody] UpdateTimerRequest request)
     {
-        await _storageService.SetConfigValueAsync("timer_interval", input.IntervalHours.ToString(), "int");
-        await _storageService.SetConfigValueAsync("timer_enabled", input.IsEnabled.ToString(), "bool");
+        var command = new UpdateTimerCommand(request.IntervalHours);
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+            return BadRequest(new { error = result.ErrorMessage });
+
+        return Ok(new { success = true });
+    }
+
+    // Settings
+    [HttpPut("settings")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
+    {
+        var command = new UpdateSettingsCommand(
+            request.MinimumSeverityForAlert,
+            request.MaxConcurrentScans,
+            request.RetentionDays
+        );
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+            return BadRequest(new { error = result.ErrorMessage });
 
         return Ok(new { success = true });
     }
 
     // Azure Connections
     [HttpGet("azure")]
+    [ProducesResponseType(typeof(IEnumerable<AzureConnectionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAzureConnections()
     {
-        var connections = await _storageService.GetAzureConnectionsAsync();
-        var result = new List<object>();
-
-        foreach (var conn in connections)
-        {
-            var expiration = !string.IsNullOrEmpty(conn.KeyVaultSecretName)
-                ? await _keyVaultService.GetSecretExpirationAsync(conn.KeyVaultSecretName)
-                : null;
-
-            result.Add(new
-            {
-                id = conn.RowKey,
-                name = conn.Name,
-                tenantId = conn.TenantId,
-                clientId = conn.ClientId,
-                subscriptionIds = conn.SubscriptionIds,
-                status = GetCredentialStatus(expiration),
-                expiresAt = expiration
-            });
-        }
-
+        var result = await _mediator.Send(new GetAzureConnectionsQuery());
         return Ok(result);
     }
 
     [HttpPost("azure")]
-    public async Task<IActionResult> CreateAzureConnection([FromBody] CreateAzureConnectionInput input)
+    [ProducesResponseType(typeof(SaveConnectionResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateAzureConnection([FromBody] CreateAzureConnectionRequest request)
     {
-        var id = Guid.NewGuid().ToString();
-        var secretName = $"azure-conn-{id}";
+        var command = new SaveAzureConnectionCommand(
+            Id: null,
+            Name: request.Name,
+            SubscriptionId: request.SubscriptionId,
+            ClientId: request.ClientId,
+            ClientSecret: request.ClientSecret
+        );
 
-        // Store secret in Key Vault
-        await _keyVaultService.SetSecretAsync(secretName, input.ClientSecret, input.ExpiresAt);
+        var result = await _mediator.Send(command);
 
-        var entity = new AzureConnectionEntity
-        {
-            RowKey = id,
-            Name = input.Name,
-            TenantId = input.TenantId,
-            ClientId = input.ClientId,
-            KeyVaultSecretName = secretName,
-            SubscriptionIds = System.Text.Json.JsonSerializer.Serialize(input.SubscriptionIds ?? []),
-            Status = "active",
-            ExpiresAt = input.ExpiresAt
-        };
+        if (!result.Success)
+            return BadRequest(new { error = result.ErrorMessage });
 
-        await _storageService.SaveAzureConnectionAsync(entity);
+        _logger.LogInformation("Created Azure connection: {Name}", request.Name);
 
-        _logger.LogInformation("Created Azure connection: {Name}", input.Name);
-
-        return CreatedAtAction(nameof(GetAzureConnections), new { id }, new { id, name = input.Name });
-    }
-
-    [HttpDelete("azure/{id}")]
-    public async Task<IActionResult> DeleteAzureConnection(string id)
-    {
-        var connection = await _storageService.GetAzureConnectionAsync(id);
-        if (connection == null)
-            return NotFound();
-
-        // Delete secret from Key Vault
-        if (!string.IsNullOrEmpty(connection.KeyVaultSecretName))
-        {
-            await _keyVaultService.DeleteSecretAsync(connection.KeyVaultSecretName);
-        }
-
-        await _storageService.DeleteAzureConnectionAsync(id);
-
-        return NoContent();
+        return CreatedAtAction(nameof(GetAzureConnections), new { id = result.Id }, result);
     }
 
     // ADO Connections
     [HttpGet("ado")]
+    [ProducesResponseType(typeof(IEnumerable<AdoConnectionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdoConnections()
     {
-        var connections = await _storageService.GetAdoConnectionsAsync();
-        var result = new List<object>();
-
-        foreach (var conn in connections)
-        {
-            var expiration = !string.IsNullOrEmpty(conn.KeyVaultSecretName)
-                ? await _keyVaultService.GetSecretExpirationAsync(conn.KeyVaultSecretName)
-                : null;
-
-            result.Add(new
-            {
-                id = conn.RowKey,
-                name = conn.Name,
-                organizationUrl = conn.OrganizationUrl,
-                authType = conn.AuthType,
-                status = GetCredentialStatus(expiration),
-                expiresAt = expiration
-            });
-        }
-
+        var result = await _mediator.Send(new GetAdoConnectionsQuery());
         return Ok(result);
     }
 
     [HttpPost("ado")]
-    public async Task<IActionResult> CreateAdoConnection([FromBody] CreateAdoConnectionInput input)
+    [ProducesResponseType(typeof(SaveConnectionResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateAdoConnection([FromBody] CreateAdoConnectionRequest request)
     {
-        var id = Guid.NewGuid().ToString();
-        var secretName = $"ado-conn-{id}";
+        var command = new SaveAdoConnectionCommand(
+            Id: null,
+            Name: request.Name,
+            Organization: request.Organization,
+            Project: request.Project,
+            PatToken: request.PatToken
+        );
 
-        // Store PAT in Key Vault
-        await _keyVaultService.SetSecretAsync(secretName, input.Pat, input.ExpiresAt);
+        var result = await _mediator.Send(command);
 
-        var entity = new AdoConnectionEntity
-        {
-            RowKey = id,
-            Name = input.Name,
-            OrganizationUrl = input.OrganizationUrl,
-            AuthType = "PAT",
-            KeyVaultSecretName = secretName,
-            Status = "active",
-            ExpiresAt = input.ExpiresAt
-        };
+        if (!result.Success)
+            return BadRequest(new { error = result.ErrorMessage });
 
-        await _storageService.SaveAdoConnectionAsync(entity);
+        _logger.LogInformation("Created ADO connection: {Name}", request.Name);
 
-        _logger.LogInformation("Created ADO connection: {Name}", input.Name);
-
-        return CreatedAtAction(nameof(GetAdoConnections), new { id }, new { id, name = input.Name });
-    }
-
-    [HttpDelete("ado/{id}")]
-    public async Task<IActionResult> DeleteAdoConnection(string id)
-    {
-        var connection = await _storageService.GetAdoConnectionAsync(id);
-        if (connection == null)
-            return NotFound();
-
-        if (!string.IsNullOrEmpty(connection.KeyVaultSecretName))
-        {
-            await _keyVaultService.DeleteSecretAsync(connection.KeyVaultSecretName);
-        }
-
-        await _storageService.DeleteAdoConnectionAsync(id);
-
-        return NoContent();
+        return CreatedAtAction(nameof(GetAdoConnections), new { id = result.Id }, result);
     }
 
     // Email Recipients
     [HttpGet("recipients")]
+    [ProducesResponseType(typeof(IEnumerable<EmailRecipientDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRecipients()
     {
-        var recipients = await _storageService.GetEmailRecipientsAsync(activeOnly: false);
-        return Ok(recipients.Select(r => new
-        {
-            id = r.RowKey,
-            email = r.Email,
-            notifyOn = r.NotifyOn,
-            isActive = r.IsActive
-        }));
+        var result = await _mediator.Send(new GetEmailRecipientsQuery());
+        return Ok(result);
     }
 
     [HttpPost("recipients")]
-    public async Task<IActionResult> AddRecipient([FromBody] AddRecipientInput input)
+    [ProducesResponseType(typeof(SaveConnectionResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddRecipient([FromBody] AddRecipientRequest request)
     {
-        var entity = new EmailRecipientEntity
-        {
-            RowKey = Guid.NewGuid().ToString(),
-            Email = input.Email,
-            NotifyOn = input.NotifyOn ?? "always",
-            IsActive = true
-        };
+        var command = new AddEmailRecipientCommand(
+            Email: request.Email,
+            Name: request.Name,
+            MinimumSeverity: request.MinimumSeverity ?? "High"
+        );
 
-        await _storageService.SaveEmailRecipientAsync(entity);
+        var result = await _mediator.Send(command);
 
-        return CreatedAtAction(nameof(GetRecipients), new { id = entity.RowKey }, new { id = entity.RowKey, email = entity.Email });
+        if (!result.Success)
+            return BadRequest(new { error = result.ErrorMessage });
+
+        return CreatedAtAction(nameof(GetRecipients), new { id = result.Id }, result);
     }
 
     [HttpDelete("recipients/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteRecipient(string id)
     {
-        await _storageService.DeleteEmailRecipientAsync(id);
+        var command = new RemoveEmailRecipientCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            if (result.ErrorMessage == "Recipient not found")
+                return NotFound();
+
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
         return NoContent();
-    }
-
-    // AI Configuration
-    [HttpGet("ai")]
-    public async Task<IActionResult> GetAiConfig()
-    {
-        var connection = await _storageService.GetActiveAiConnectionAsync();
-        if (connection == null)
-            return Ok(new { configured = false });
-
-        return Ok(new
-        {
-            configured = true,
-            id = connection.RowKey,
-            name = connection.Name,
-            endpoint = connection.Endpoint,
-            deploymentName = connection.DeploymentName,
-            status = connection.Status
-        });
-    }
-
-    [HttpPost("ai")]
-    public async Task<IActionResult> SaveAiConfig([FromBody] SaveAiConfigInput input)
-    {
-        var id = Guid.NewGuid().ToString();
-        var secretName = $"ai-conn-{id}";
-
-        await _keyVaultService.SetSecretAsync(secretName, input.ApiKey);
-
-        var entity = new AiConnectionEntity
-        {
-            RowKey = id,
-            Name = input.Name ?? "Azure OpenAI",
-            Endpoint = input.Endpoint,
-            DeploymentName = input.DeploymentName,
-            AuthType = "ApiKey",
-            KeyVaultSecretName = secretName,
-            Status = "active"
-        };
-
-        await _storageService.SaveAiConnectionAsync(entity);
-
-        return Ok(new { id, success = true });
-    }
-
-    private static string GetCredentialStatus(DateTimeOffset? expiresAt)
-    {
-        if (!expiresAt.HasValue) return "active";
-
-        var daysUntilExpiration = (expiresAt.Value - DateTimeOffset.UtcNow).TotalDays;
-
-        return daysUntilExpiration switch
-        {
-            < 0 => "expired",
-            < 14 => "danger",
-            < 30 => "warning",
-            _ => "active"
-        };
     }
 }
 
-// Input DTOs
-public record TimerConfigInput(int IntervalHours, bool IsEnabled);
-public record CreateAzureConnectionInput(
+// Request DTOs
+public record UpdateTimerRequest(int IntervalHours);
+
+public record UpdateSettingsRequest(
+    string MinimumSeverityForAlert,
+    int MaxConcurrentScans,
+    int RetentionDays
+);
+
+public record CreateAzureConnectionRequest(
     string Name,
-    string TenantId,
+    string SubscriptionId,
     string ClientId,
-    string ClientSecret,
-    string[]? SubscriptionIds,
-    DateTimeOffset? ExpiresAt);
-public record CreateAdoConnectionInput(
+    string ClientSecret
+);
+
+public record CreateAdoConnectionRequest(
     string Name,
-    string OrganizationUrl,
-    string Pat,
-    DateTimeOffset? ExpiresAt);
-public record AddRecipientInput(string Email, string? NotifyOn);
-public record SaveAiConfigInput(string Endpoint, string DeploymentName, string ApiKey, string? Name);
+    string Organization,
+    string Project,
+    string PatToken
+);
+
+public record AddRecipientRequest(
+    string Email,
+    string Name,
+    string? MinimumSeverity
+);

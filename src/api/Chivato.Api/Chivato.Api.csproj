@@ -10,7 +10,7 @@
   <ItemGroup>
     <!-- Clean Architecture layers -->
     <ProjectReference Include="..\..\core\Chivato.Application\Chivato.Application.csproj" />
-    <ProjectReference Include="..\..\infrastructure\Chivato.Infrastructure\Chivato.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\core\Chivato.Infrastructure\Chivato.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
