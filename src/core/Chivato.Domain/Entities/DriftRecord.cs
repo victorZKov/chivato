@@ -78,6 +78,56 @@ public class DriftRecord : BaseEntity
         ResolvedBy = userId;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Reconstitute a DriftRecord from persistence
+    /// </summary>
+    public static DriftRecord Reconstitute(
+        string id,
+        string tenantId,
+        string pipelineId,
+        string correlationId,
+        Severity severity,
+        string resourceId,
+        string resourceType,
+        string resourceName,
+        string property,
+        string expectedValue,
+        string actualValue,
+        string description,
+        string recommendation,
+        string category,
+        DateTimeOffset detectedAt,
+        DriftStatus status,
+        DateTimeOffset? resolvedAt,
+        string? resolvedBy,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new DriftRecord
+        {
+            Id = id,
+            TenantId = tenantId,
+            PipelineId = pipelineId,
+            CorrelationId = correlationId,
+            Severity = severity,
+            ResourceId = resourceId,
+            ResourceType = resourceType,
+            ResourceName = resourceName,
+            Property = property,
+            ExpectedValue = expectedValue,
+            ActualValue = actualValue,
+            Description = description,
+            Recommendation = recommendation,
+            Category = category,
+            DetectedAt = detectedAt,
+            Status = status,
+            ResolvedAt = resolvedAt,
+            ResolvedBy = resolvedBy,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 public enum DriftStatus

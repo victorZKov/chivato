@@ -90,6 +90,48 @@ public class Pipeline : BaseEntity
         Status = PipelineStatus.Inactive;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Reconstitute a Pipeline from persistence (no domain events raised)
+    /// </summary>
+    public static Pipeline Reconstitute(
+        string id,
+        string tenantId,
+        string name,
+        string organization,
+        string project,
+        string repositoryId,
+        string branch,
+        string terraformPath,
+        string subscriptionId,
+        string resourceGroup,
+        PipelineStatus status,
+        DateTimeOffset? lastScanAt,
+        int driftCount,
+        string? lastScanCorrelationId,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new Pipeline
+        {
+            Id = id,
+            TenantId = tenantId,
+            Name = name,
+            Organization = organization,
+            Project = project,
+            RepositoryId = repositoryId,
+            Branch = branch,
+            TerraformPath = terraformPath,
+            SubscriptionId = subscriptionId,
+            ResourceGroup = resourceGroup,
+            Status = status,
+            LastScanAt = lastScanAt,
+            DriftCount = driftCount,
+            LastScanCorrelationId = lastScanCorrelationId,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 public enum PipelineStatus

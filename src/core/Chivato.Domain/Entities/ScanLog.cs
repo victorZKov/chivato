@@ -60,6 +60,48 @@ public class ScanLog : BaseEntity
         DurationSeconds = (int)(CompletedAt.Value - StartedAt).TotalSeconds;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Reconstitute a ScanLog from persistence
+    /// </summary>
+    public static ScanLog Reconstitute(
+        string id,
+        string tenantId,
+        string pipelineId,
+        string pipelineName,
+        string correlationId,
+        ScanStatus status,
+        DateTimeOffset startedAt,
+        DateTimeOffset? completedAt,
+        int driftCount,
+        int resourcesScanned,
+        int durationSeconds,
+        string triggeredBy,
+        string? errorMessage,
+        string? overallRisk,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new ScanLog
+        {
+            Id = id,
+            TenantId = tenantId,
+            PipelineId = pipelineId,
+            PipelineName = pipelineName,
+            CorrelationId = correlationId,
+            Status = status,
+            StartedAt = startedAt,
+            CompletedAt = completedAt,
+            DriftCount = driftCount,
+            ResourcesScanned = resourcesScanned,
+            DurationSeconds = durationSeconds,
+            TriggeredBy = triggeredBy,
+            ErrorMessage = errorMessage,
+            OverallRisk = overallRisk,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 public enum ScanStatus

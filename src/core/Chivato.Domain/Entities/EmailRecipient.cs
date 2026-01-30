@@ -77,6 +77,32 @@ public class EmailRecipient : BaseEntity
             return false;
         }
     }
+
+    /// <summary>
+    /// Reconstitute an EmailRecipient from persistence
+    /// </summary>
+    public static EmailRecipient Reconstitute(
+        string id,
+        string tenantId,
+        string email,
+        string name,
+        bool isActive,
+        NotificationPreferences preferences,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new EmailRecipient
+        {
+            Id = id,
+            TenantId = tenantId,
+            Email = email,
+            Name = name,
+            IsActive = isActive,
+            Preferences = preferences,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 /// <summary>

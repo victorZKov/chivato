@@ -89,6 +89,40 @@ public class AdoConnection : BaseEntity
     public string GetOrganizationUrl() => $"https://dev.azure.com/{Organization}";
 
     public string GetProjectUrl() => $"https://dev.azure.com/{Organization}/{Project}";
+
+    /// <summary>
+    /// Reconstitute an AdoConnection from persistence
+    /// </summary>
+    public static AdoConnection Reconstitute(
+        string id,
+        string tenantId,
+        string name,
+        string organization,
+        string project,
+        string patKeyVaultKey,
+        ConnectionStatus status,
+        DateTimeOffset? lastTestedAt,
+        string? lastTestError,
+        bool isDefault,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new AdoConnection
+        {
+            Id = id,
+            TenantId = tenantId,
+            Name = name,
+            Organization = organization,
+            Project = project,
+            PatKeyVaultKey = patKeyVaultKey,
+            Status = status,
+            LastTestedAt = lastTestedAt,
+            LastTestError = lastTestError,
+            IsDefault = isDefault,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 // Domain Events

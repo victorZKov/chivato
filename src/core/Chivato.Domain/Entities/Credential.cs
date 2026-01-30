@@ -93,6 +93,40 @@ public class Credential : BaseEntity
         var days = (ExpiresAt.Value - DateTimeOffset.UtcNow).Days;
         return days < 0 ? 0 : days;
     }
+
+    /// <summary>
+    /// Reconstitute a Credential from persistence
+    /// </summary>
+    public static Credential Reconstitute(
+        string id,
+        string tenantId,
+        string name,
+        CredentialType type,
+        string keyVaultSecretName,
+        CredentialStatus status,
+        DateTimeOffset? expiresAt,
+        DateTimeOffset? lastRotatedAt,
+        DateTimeOffset? lastUsedAt,
+        string? associatedResourceId,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new Credential
+        {
+            Id = id,
+            TenantId = tenantId,
+            Name = name,
+            Type = type,
+            KeyVaultSecretName = keyVaultSecretName,
+            Status = status,
+            ExpiresAt = expiresAt,
+            LastRotatedAt = lastRotatedAt,
+            LastUsedAt = lastUsedAt,
+            AssociatedResourceId = associatedResourceId,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 public enum CredentialType

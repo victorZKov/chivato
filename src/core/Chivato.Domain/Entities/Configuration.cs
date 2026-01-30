@@ -61,6 +61,32 @@ public class Configuration : BaseEntity
         public const string MaxConcurrentScans = "2";
         public const string RetentionDays = "90";
     }
+
+    /// <summary>
+    /// Reconstitute a Configuration from persistence
+    /// </summary>
+    public static Configuration Reconstitute(
+        string id,
+        string tenantId,
+        string key,
+        string value,
+        ConfigurationCategory category,
+        string? description,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new Configuration
+        {
+            Id = id,
+            TenantId = tenantId,
+            Key = key,
+            Value = value,
+            Category = category,
+            Description = description,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 public enum ConfigurationCategory

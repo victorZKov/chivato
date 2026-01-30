@@ -85,6 +85,40 @@ public class AzureConnection : BaseEntity
 
         AddDomainEvent(new ConnectionTestedEvent(Id, TenantId, "Azure", false, error));
     }
+
+    /// <summary>
+    /// Reconstitute an AzureConnection from persistence
+    /// </summary>
+    public static AzureConnection Reconstitute(
+        string id,
+        string tenantId,
+        string name,
+        string subscriptionId,
+        string clientId,
+        string clientSecretKeyVaultKey,
+        ConnectionStatus status,
+        DateTimeOffset? lastTestedAt,
+        string? lastTestError,
+        bool isDefault,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt)
+    {
+        return new AzureConnection
+        {
+            Id = id,
+            TenantId = tenantId,
+            Name = name,
+            SubscriptionId = subscriptionId,
+            ClientId = clientId,
+            ClientSecretKeyVaultKey = clientSecretKeyVaultKey,
+            Status = status,
+            LastTestedAt = lastTestedAt,
+            LastTestError = lastTestError,
+            IsDefault = isDefault,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
 }
 
 // Domain Events
