@@ -11,6 +11,8 @@ public class CredentialTableEntity : BaseTableEntity
     public DateTimeOffset? ExpiresAt { get; set; }
     public DateTimeOffset? LastRotatedAt { get; set; }
     public DateTimeOffset? LastUsedAt { get; set; }
+    public DateTimeOffset? LastTestedAt { get; set; }
+    public string? LastTestResult { get; set; }
     public string? AssociatedResourceId { get; set; }
 
     public static CredentialTableEntity FromDomain(Credential credential)
@@ -26,6 +28,8 @@ public class CredentialTableEntity : BaseTableEntity
             ExpiresAt = credential.ExpiresAt,
             LastRotatedAt = credential.LastRotatedAt,
             LastUsedAt = credential.LastUsedAt,
+            LastTestedAt = credential.LastTestedAt,
+            LastTestResult = credential.LastTestResult,
             AssociatedResourceId = credential.AssociatedResourceId,
             CreatedAt = credential.CreatedAt,
             UpdatedAt = credential.UpdatedAt
@@ -44,6 +48,8 @@ public class CredentialTableEntity : BaseTableEntity
             expiresAt: ExpiresAt,
             lastRotatedAt: LastRotatedAt,
             lastUsedAt: LastUsedAt,
+            lastTestedAt: LastTestedAt,
+            lastTestResult: LastTestResult,
             associatedResourceId: AssociatedResourceId,
             createdAt: CreatedAt,
             updatedAt: UpdatedAt

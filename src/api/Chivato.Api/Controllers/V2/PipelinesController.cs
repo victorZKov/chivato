@@ -60,8 +60,8 @@ public class PipelinesController : ControllerBase
         var result = await _mediator.Send(command, ct);
 
         if (!result.Success)
-            return BadRequest(new { error = result.Error });
+            return BadRequest(new { error = result.ErrorMessage });
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetById), new { id = result.PipelineId }, result);
     }
 }

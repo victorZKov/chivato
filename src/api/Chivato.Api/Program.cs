@@ -1,7 +1,7 @@
 using Chivato.Api.Services;
 using Chivato.Application;
 using Chivato.Application.Common;
-using Chivato.Infrastructure;
+using Chivato.Infrastructure.Extensions;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);

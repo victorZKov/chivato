@@ -1,6 +1,5 @@
-using Chivato.Shared.Models;
-using Chivato.Shared.Models.Messages;
-using Chivato.Shared.Services;
+using Chivato.Application.Commands.Analysis;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Chivato.Api.Controllers;
@@ -9,153 +8,77 @@ namespace Chivato.Api.Controllers;
 [Route("api/analysis")]
 public class AnalysisController : ControllerBase
 {
-    private readonly IStorageService _storageService;
-    private readonly IMessageQueueService? _messageQueueService;
+    private readonly IMediator _mediator;
     private readonly ILogger<AnalysisController> _logger;
 
-    public AnalysisController(
-        IStorageService storageService,
-        IMessageQueueService? messageQueueService,
-        ILogger<AnalysisController> logger)
+    public AnalysisController(IMediator mediator, ILogger<AnalysisController> logger)
     {
-        _storageService = storageService;
-        _messageQueueService = messageQueueService;
+        _mediator = mediator;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Trigger drift analysis for a specific pipeline or all pipelines
+    /// </summary>
     [HttpPost("trigger")]
-    public async Task<IActionResult> TriggerAnalysis([FromBody] TriggerAnalysisInput? input)
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TriggerAnalysis([FromBody] TriggerAnalysisRequest? request)
     {
-        if (_messageQueueService == null)
-            return BadRequest(new { error = "Message queue not configured" });
+        var command = new TriggerAnalysisCommand(
+            PipelineId: request?.PipelineId,
+            AnalyzeAll: false
+        );
 
-        // Validate pipeline if specified
-        if (!string.IsNullOrEmpty(input?.PipelineId))
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
         {
-            var pipeline = await _storageService.GetPipelineByIdAsync(input.PipelineId);
-            if (pipeline == null)
-                return NotFound(new { error = "Pipeline not found" });
+            if (result.Error?.Contains("not found") == true)
+                return NotFound(new { error = result.Error });
+
+            return BadRequest(new { error = result.Error });
         }
 
-        var message = new DriftAnalysisMessage
-        {
-            TriggerType = "AdHoc",
-            PipelineId = input?.PipelineId,
-            TenantId = GetTenantId(),
-            InitiatedBy = GetUserId(),
-            Priority = "High",
-            SendNotification = input?.SendNotification ?? true
-        };
-
-        // Track the analysis status
-        var status = new AnalysisStatusEntity
-        {
-            RowKey = message.CorrelationId,
-            Status = "queued",
-            PipelineId = message.PipelineId,
-            TenantId = message.TenantId,
-            InitiatedBy = message.InitiatedBy,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        await _storageService.SaveAnalysisStatusAsync(status);
-
-        await _messageQueueService.SendAnalysisMessageAsync(message);
-
-        _logger.LogInformation("Enqueued analysis: {CorrelationId}", message.CorrelationId);
+        _logger.LogInformation("Triggered analysis: {CorrelationId}", result.CorrelationId);
 
         return Accepted(new
         {
-            correlationId = message.CorrelationId,
+            correlationId = result.CorrelationId,
             status = "queued",
             message = "Analysis request has been queued for processing"
         });
     }
 
+    /// <summary>
+    /// Trigger drift analysis for all active pipelines
+    /// </summary>
     [HttpPost("trigger-all")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> TriggerAllAnalysis()
     {
-        if (_messageQueueService == null)
-            return BadRequest(new { error = "Message queue not configured" });
+        var command = new TriggerAnalysisCommand(
+            PipelineId: null,
+            AnalyzeAll: true
+        );
 
-        var pipelines = await _storageService.GetActivePipelinesAsync();
-        var pipelineList = pipelines.ToList();
+        var result = await _mediator.Send(command);
 
-        if (pipelineList.Count == 0)
-            return Ok(new { pipelinesQueued = 0, correlationIds = Array.Empty<string>() });
+        if (!result.Success)
+            return BadRequest(new { error = result.Error });
 
-        var messages = pipelineList.Select(p => new DriftAnalysisMessage
-        {
-            TriggerType = "AdHoc",
-            PipelineId = p.PipelineId,
-            OrganizationId = p.PartitionKey,
-            TenantId = p.TenantId,
-            InitiatedBy = GetUserId(),
-            Priority = "Normal",
-            SendNotification = true
-        }).ToList();
-
-        // Track all analysis statuses
-        foreach (var message in messages)
-        {
-            var status = new AnalysisStatusEntity
-            {
-                RowKey = message.CorrelationId,
-                Status = "queued",
-                PipelineId = message.PipelineId,
-                TenantId = message.TenantId,
-                InitiatedBy = message.InitiatedBy,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            await _storageService.SaveAnalysisStatusAsync(status);
-        }
-
-        await _messageQueueService.SendAnalysisMessagesAsync(messages);
-
-        _logger.LogInformation("Enqueued analysis for {Count} pipelines", pipelineList.Count);
+        _logger.LogInformation("Triggered analysis for all pipelines: {CorrelationId}", result.CorrelationId);
 
         return Accepted(new
         {
-            pipelinesQueued = messages.Count,
-            correlationIds = messages.Select(m => m.CorrelationId)
+            correlationId = result.CorrelationId,
+            status = "queued",
+            message = "Analysis request for all pipelines has been queued"
         });
-    }
-
-    [HttpGet("status/{correlationId}")]
-    public async Task<IActionResult> GetAnalysisStatus(string correlationId)
-    {
-        var status = await _storageService.GetAnalysisStatusAsync(correlationId);
-
-        if (status == null)
-            return NotFound(new { error = "Analysis not found" });
-
-        return Ok(new
-        {
-            correlationId = status.RowKey,
-            status = status.Status,
-            pipelineId = status.PipelineId,
-            pipelineName = status.PipelineName,
-            progress = status.Progress,
-            currentStage = status.CurrentStage,
-            message = status.Message,
-            driftCount = status.DriftCount,
-            errorMessage = status.ErrorMessage,
-            createdAt = status.CreatedAt,
-            completedAt = status.CompletedAt,
-            durationSeconds = status.DurationSeconds
-        });
-    }
-
-    private string GetTenantId()
-    {
-        // TODO: Extract from JWT token claims
-        return Request.Headers["X-Tenant-Id"].FirstOrDefault() ?? "demo-tenant";
-    }
-
-    private string? GetUserId()
-    {
-        // TODO: Extract from JWT token claims
-        return Request.Headers["X-User-Id"].FirstOrDefault();
     }
 }
 
-public record TriggerAnalysisInput(string? PipelineId, bool? SendNotification);
+// Request DTOs
+public record TriggerAnalysisRequest(string? PipelineId);

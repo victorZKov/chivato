@@ -1,4 +1,5 @@
 using Chivato.Application.Commands.Pipelines;
+using Chivato.Application.DTOs;
 using Chivato.Application.Queries.Pipelines;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

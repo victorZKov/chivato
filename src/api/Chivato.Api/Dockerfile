@@ -2,15 +2,19 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy project files
-COPY shared/Chivato.Shared/Chivato.Shared.csproj shared/Chivato.Shared/
+# Copy project files (Clean Architecture)
+COPY core/Chivato.Domain/Chivato.Domain.csproj core/Chivato.Domain/
+COPY core/Chivato.Application/Chivato.Application.csproj core/Chivato.Application/
+COPY core/Chivato.Infrastructure/Chivato.Infrastructure.csproj core/Chivato.Infrastructure/
 COPY api/Chivato.Api/Chivato.Api.csproj api/Chivato.Api/
 
 # Restore dependencies
 RUN dotnet restore api/Chivato.Api/Chivato.Api.csproj
 
 # Copy source code
-COPY shared/Chivato.Shared/ shared/Chivato.Shared/
+COPY core/Chivato.Domain/ core/Chivato.Domain/
+COPY core/Chivato.Application/ core/Chivato.Application/
+COPY core/Chivato.Infrastructure/ core/Chivato.Infrastructure/
 COPY api/Chivato.Api/ api/Chivato.Api/
 
 # Build

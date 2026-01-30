@@ -1,4 +1,5 @@
-using Chivato.Shared.Services;
+using Chivato.Application.Queries.Scans;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Chivato.Api.Controllers;
@@ -7,99 +8,73 @@ namespace Chivato.Api.Controllers;
 [Route("api/scans")]
 public class ScansController : ControllerBase
 {
-    private readonly IStorageService _storageService;
+    private readonly IMediator _mediator;
 
-    public ScansController(IStorageService storageService)
+    public ScansController(IMediator mediator)
     {
-        _storageService = storageService;
+        _mediator = mediator;
     }
 
+    /// <summary>
+    /// Get scan logs with filtering and pagination
+    /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(PagedScanResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetScans(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
         [FromQuery] string? pipelineId,
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var scans = await _storageService.GetScanLogsAsync(from, to, pipelineId, status);
-        var scanList = scans.ToList();
-
-        var total = scanList.Count;
-        var items = scanList.Skip((page - 1) * pageSize).Take(pageSize);
+        var query = new GetScansPagedQuery(page, pageSize, pipelineId, status, from, to);
+        var result = await _mediator.Send(query);
 
         return Ok(new
         {
-            items = items.Select(s => new
-            {
-                id = s.RowKey,
-                pipelineId = s.PipelineId,
-                pipelineName = s.PipelineName,
-                startedAt = s.StartedAt,
-                completedAt = s.CompletedAt,
-                status = s.Status,
-                driftCount = s.DriftCount,
-                durationSeconds = s.DurationSeconds,
-                triggeredBy = s.TriggeredBy,
-                errorMessage = s.ErrorMessage,
-                resourcesScanned = s.ResourcesScanned
-            }),
-            total,
-            page,
-            pageSize
+            items = result.Items,
+            total = result.Total,
+            page = result.Page,
+            pageSize = result.PageSize
         });
     }
 
+    /// <summary>
+    /// Get a specific scan by ID
+    /// </summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ScanDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetScan(string id)
     {
-        var scan = await _storageService.GetScanLogAsync(id);
-        if (scan == null)
+        var query = new GetScanByIdQuery(id);
+        var result = await _mediator.Send(query);
+
+        if (result == null)
             return NotFound();
 
-        // Parse steps if available
-        List<object>? steps = null;
-        if (!string.IsNullOrEmpty(scan.StepsJson))
-        {
-            try
-            {
-                steps = System.Text.Json.JsonSerializer.Deserialize<List<object>>(scan.StepsJson);
-            }
-            catch { }
-        }
-
-        return Ok(new
-        {
-            id = scan.RowKey,
-            pipelineId = scan.PipelineId,
-            pipelineName = scan.PipelineName,
-            startedAt = scan.StartedAt,
-            completedAt = scan.CompletedAt,
-            status = scan.Status,
-            driftCount = scan.DriftCount,
-            durationSeconds = scan.DurationSeconds,
-            triggeredBy = scan.TriggeredBy,
-            errorMessage = scan.ErrorMessage,
-            resourcesScanned = scan.ResourcesScanned,
-            correlationId = scan.CorrelationId,
-            steps
-        });
+        return Ok(result);
     }
 
+    /// <summary>
+    /// Get scan statistics
+    /// </summary>
     [HttpGet("stats")]
+    [ProducesResponseType(typeof(ScanStatsDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetScanStats(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to)
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to)
     {
-        var stats = await _storageService.GetScanStatsAsync(from, to);
+        var query = new GetScanStatsQuery(from, to);
+        var result = await _mediator.Send(query);
 
         return Ok(new
         {
-            total = stats.Total,
-            success = stats.Success,
-            failed = stats.Failed,
-            avgDurationSeconds = stats.AvgDurationSeconds
+            total = result.Total,
+            success = result.Success,
+            failed = result.Failed,
+            avgDurationSeconds = result.AvgDurationSeconds
         });
     }
 }

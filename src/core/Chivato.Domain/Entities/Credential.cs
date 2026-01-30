@@ -14,6 +14,8 @@ public class Credential : BaseEntity
     public DateTimeOffset? ExpiresAt { get; private set; }
     public DateTimeOffset? LastRotatedAt { get; private set; }
     public DateTimeOffset? LastUsedAt { get; private set; }
+    public DateTimeOffset? LastTestedAt { get; private set; }
+    public string? LastTestResult { get; private set; }
     public string? AssociatedResourceId { get; private set; }
 
     private Credential() { }
@@ -47,6 +49,19 @@ public class Credential : BaseEntity
     public void MarkAsUsed()
     {
         LastUsedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateTestResult(bool success, string? error = null)
+    {
+        LastTestedAt = DateTimeOffset.UtcNow;
+        LastTestResult = success ? "success" : (error ?? "failed");
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UpdateExpiration(DateTimeOffset newExpiresAt)
+    {
+        ExpiresAt = newExpiresAt;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void Rotate(DateTimeOffset? newExpiresAt = null)
@@ -107,6 +122,8 @@ public class Credential : BaseEntity
         DateTimeOffset? expiresAt,
         DateTimeOffset? lastRotatedAt,
         DateTimeOffset? lastUsedAt,
+        DateTimeOffset? lastTestedAt,
+        string? lastTestResult,
         string? associatedResourceId,
         DateTimeOffset createdAt,
         DateTimeOffset? updatedAt)
@@ -122,11 +139,18 @@ public class Credential : BaseEntity
             ExpiresAt = expiresAt,
             LastRotatedAt = lastRotatedAt,
             LastUsedAt = lastUsedAt,
+            LastTestedAt = lastTestedAt,
+            LastTestResult = lastTestResult,
             AssociatedResourceId = associatedResourceId,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
     }
+
+    /// <summary>
+    /// Get string representation of the credential type
+    /// </summary>
+    public string TypeAsString => Type.ToString();
 }
 
 public enum CredentialType
