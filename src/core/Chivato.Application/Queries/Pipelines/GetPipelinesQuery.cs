@@ -5,4 +5,4 @@ namespace Chivato.Application.Queries.Pipelines;
 
 public record GetPipelinesQuery() : IRequest<IReadOnlyList<PipelineDto>>;
 
-public record GetPipelineByIdQuery(string Id) : IRequest<PipelineDto?>;
+public record GetPipelineByIdQuery(string Id) : IRequest<PipelineDetailDto?>;

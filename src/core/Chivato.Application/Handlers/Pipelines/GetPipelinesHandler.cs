@@ -39,7 +39,7 @@ public class GetPipelinesHandler : IRequestHandler<GetPipelinesQuery, IReadOnlyL
     }
 }
 
-public class GetPipelineByIdHandler : IRequestHandler<GetPipelineByIdQuery, PipelineDto?>
+public class GetPipelineByIdHandler : IRequestHandler<GetPipelineByIdQuery, PipelineDetailDto?>
 {
     private readonly IPipelineRepository _repository;
     private readonly ICurrentUser _currentUser;
@@ -50,13 +50,13 @@ public class GetPipelineByIdHandler : IRequestHandler<GetPipelineByIdQuery, Pipe
         _currentUser = currentUser;
     }
 
-    public async Task<PipelineDto?> Handle(GetPipelineByIdQuery request, CancellationToken cancellationToken)
+    public async Task<PipelineDetailDto?> Handle(GetPipelineByIdQuery request, CancellationToken cancellationToken)
     {
         var pipeline = await _repository.GetByIdAsync(_currentUser.TenantId, request.Id, cancellationToken);
 
         if (pipeline == null) return null;
 
-        return new PipelineDto(
+        return new PipelineDetailDto(
             pipeline.Id,
             pipeline.Name,
             pipeline.Organization,
@@ -69,7 +69,10 @@ public class GetPipelineByIdHandler : IRequestHandler<GetPipelineByIdQuery, Pipe
             pipeline.Status.ToString(),
             pipeline.LastScanAt,
             pipeline.DriftCount,
-            pipeline.CreatedAt
+            pipeline.CreatedAt,
+            pipeline.UpdatedAt,
+            RecentDrifts: null,  // Could be populated by querying drift repository
+            RecentScans: null    // Could be populated by querying scan repository
         );
     }
 }

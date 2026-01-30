@@ -1,5 +1,6 @@
 using Chivato.Application.Commands.Analysis;
 using Chivato.Application.Common;
+using Chivato.Domain.Interfaces;
 using MediatR;
 
 namespace Chivato.Application.Handlers.Analysis;

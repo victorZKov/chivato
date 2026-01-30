@@ -13,4 +13,4 @@ public record CreatePipelineCommand(
     string ResourceGroup
 ) : IRequest<CreatePipelineResult>;
 
-public record CreatePipelineResult(string Id, bool Success, string? Error = null);
+public record CreatePipelineResult(string PipelineId, bool Success, string? ErrorMessage = null);

@@ -10,5 +10,5 @@ public record ScanPipelineCommand(string PipelineId) : IRequest<ScanPipelineResu
 public record ScanPipelineResult(
     string CorrelationId,
     bool Success,
-    string? Error = null
+    string? ErrorMessage = null
 );

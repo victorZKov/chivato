@@ -16,6 +16,25 @@ public record PipelineDto(
     DateTimeOffset CreatedAt
 );
 
+public record PipelineDetailDto(
+    string Id,
+    string Name,
+    string Organization,
+    string Project,
+    string RepositoryId,
+    string Branch,
+    string TerraformPath,
+    string SubscriptionId,
+    string ResourceGroup,
+    string Status,
+    DateTimeOffset? LastScanAt,
+    int DriftCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    IReadOnlyList<DriftRecordDto>? RecentDrifts,
+    IReadOnlyList<ScanLogDto>? RecentScans
+);
+
 public record DriftRecordDto(
     string Id,
     string PipelineId,

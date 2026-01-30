@@ -14,14 +14,6 @@ public record TriggerAnalysisResult(
 );
 
 /// <summary>
-/// Interface for message queue service (Service Bus, RabbitMQ, etc.)
-/// </summary>
-public interface IMessageQueueService
-{
-    Task SendAsync<T>(string queueName, T message, CancellationToken ct = default) where T : class;
-}
-
-/// <summary>
 /// Message for drift analysis request
 /// </summary>
 public record DriftAnalysisMessage(

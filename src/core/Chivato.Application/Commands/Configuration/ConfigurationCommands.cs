@@ -9,10 +9,10 @@ namespace Chivato.Application.Commands.Configuration;
 public record UpdateTimerCommand(int IntervalHours) : IRequest<CommandResult>;
 
 public record UpdateSettingsCommand(
-    bool EmailNotificationsEnabled,
     string MinimumSeverityForAlert,
     int MaxConcurrentScans,
-    int RetentionDays
+    int RetentionDays,
+    bool EmailNotificationsEnabled = true
 ) : IRequest<CommandResult>;
 
 // ==========================================
@@ -25,7 +25,7 @@ public record SaveAzureConnectionCommand(
     string SubscriptionId,
     string ClientId,
     string ClientSecret,
-    bool IsDefault
+    bool IsDefault = false
 ) : IRequest<SaveConnectionResult>;
 
 public record DeleteAzureConnectionCommand(string Id) : IRequest<CommandResult>;
@@ -44,7 +44,7 @@ public record SaveAdoConnectionCommand(
     string Organization,
     string Project,
     string PatToken,
-    bool IsDefault
+    bool IsDefault = false
 ) : IRequest<SaveConnectionResult>;
 
 public record DeleteAdoConnectionCommand(string Id) : IRequest<CommandResult>;
@@ -61,8 +61,8 @@ public record AddEmailRecipientCommand(
     string Email,
     string Name,
     string MinimumSeverity,
-    bool NotifyOnScanComplete,
-    bool NotifyOnNewDrift
+    bool NotifyOnScanComplete = true,
+    bool NotifyOnNewDrift = true
 ) : IRequest<SaveConnectionResult>;
 
 public record UpdateEmailRecipientCommand(
@@ -80,8 +80,8 @@ public record RemoveEmailRecipientCommand(string Id) : IRequest<CommandResult>;
 // Common Result Types
 // ==========================================
 
-public record CommandResult(bool Success, string? Error = null);
+public record CommandResult(bool Success, string? ErrorMessage = null);
 
-public record SaveConnectionResult(string Id, bool Success, string? Error = null);
+public record SaveConnectionResult(string Id, bool Success, string? ErrorMessage = null);
 
-public record TestConnectionResult(bool Success, string Status, string? Error = null);
+public record TestConnectionResult(bool Success, string Status, string? ErrorMessage = null);

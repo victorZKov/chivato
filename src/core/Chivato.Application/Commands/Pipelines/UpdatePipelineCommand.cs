@@ -11,4 +11,4 @@ public record UpdatePipelineCommand(
     string ResourceGroup
 ) : IRequest<UpdatePipelineResult>;
 
-public record UpdatePipelineResult(bool Success, string? Error = null);
+public record UpdatePipelineResult(bool Success, string? ErrorMessage = null);
