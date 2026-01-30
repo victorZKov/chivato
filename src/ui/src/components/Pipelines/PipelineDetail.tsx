@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from '../../hooks/useNavigate';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:7071/api';
 
@@ -33,9 +33,12 @@ interface PipelineDetails {
   }>;
 }
 
-export function PipelineDetail() {
+interface PipelineDetailProps {
+  id: string;
+}
+
+export function PipelineDetail({ id }: PipelineDetailProps) {
   const { t } = useTranslation();
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [pipeline, setPipeline] = useState<PipelineDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'drifts' | 'scans'>('overview');
