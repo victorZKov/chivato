@@ -42,8 +42,12 @@
   "nav": {
     "dashboard": "Dashboard",
     "pipelines": "Pipelines",
+    "driftHistory": "Drift History",
+    "scans": "Scan Logs",
+    "credentials": "Credentials",
     "billing": "Billing",
-    "configuration": "Configuration"
+    "configuration": "Configuration",
+    "documentation": "Documentation"
   },
   "theme": {
     "title": "Theme",
@@ -74,14 +78,176 @@
     "info": "Info"
   },
   "credentials": {
-    "title": "Credentials Status",
-    "daysRemaining": "{{count}} days remaining"
+    "title": "Credentials",
+    "subtitle": "Manage connection credentials",
+    "status": "Status",
+    "daysRemaining": "{{count}} days remaining",
+    "expired": "Expired",
+    "expiringSoon": "Expiring Soon",
+    "healthy": "Healthy",
+    "expiresAt": "Expires At",
+    "lastTested": "Last Tested",
+    "neverTested": "Never tested",
+    "noCredentials": "No credentials configured",
+    "types": {
+      "azure": "Azure",
+      "ado": "Azure DevOps",
+      "ai": "AI Service",
+      "email": "Email Service"
+    },
+    "actions": {
+      "test": "Test Connection",
+      "rotate": "Rotate Secret",
+      "viewExpiring": "View Expiring"
+    },
+    "rotate": {
+      "title": "Rotate Credential",
+      "newSecret": "New Secret",
+      "expiresAt": "New Expiration Date",
+      "confirm": "Are you sure you want to rotate this credential?"
+    },
+    "test": {
+      "success": "Connection test successful",
+      "failed": "Connection test failed",
+      "testing": "Testing connection..."
+    },
+    "alerts": {
+      "expiringSoon": "{{count}} credentials expiring within 30 days",
+      "expired": "{{count}} credentials have expired"
+    }
   },
   "driftExamples": {
     "appServiceSku": "App Service SKU changed from P1V2 to B1",
     "storageRedundancy": "Storage Account redundancy drift (LRS → GRS)",
     "missingTags": "Missing tags in Resource Group",
     "diagnosticsDisabled": "Diagnostic settings disabled"
+  },
+  "drift": {
+    "title": "Drift History",
+    "subtitle": "View all detected infrastructure drifts",
+    "noResults": "No drifts found",
+    "filters": {
+      "pipeline": "Pipeline",
+      "allPipelines": "All Pipelines",
+      "severity": "Severity",
+      "allSeverities": "All Severities",
+      "dateRange": "Date Range",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear Filters"
+    },
+    "table": {
+      "resource": "Resource",
+      "resourceType": "Resource Type",
+      "property": "Property",
+      "expected": "Expected",
+      "actual": "Actual",
+      "severity": "Severity",
+      "detectedAt": "Detected At",
+      "pipeline": "Pipeline",
+      "status": "Status"
+    },
+    "detail": {
+      "title": "Drift Details",
+      "description": "Description",
+      "recommendation": "Recommendation",
+      "category": "Category",
+      "resourceId": "Resource ID"
+    },
+    "stats": {
+      "title": "Statistics",
+      "total": "Total Drifts",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "lastAnalysis": "Last Analysis"
+    },
+    "export": {
+      "title": "Export",
+      "format": "Format",
+      "csv": "CSV",
+      "json": "JSON",
+      "download": "Download",
+      "exporting": "Exporting..."
+    },
+    "status": {
+      "new": "New",
+      "acknowledged": "Acknowledged",
+      "resolved": "Resolved",
+      "ignored": "Ignored"
+    }
+  },
+  "scans": {
+    "title": "Scan Logs",
+    "subtitle": "View scan history and results",
+    "noResults": "No scans found",
+    "runAnalysis": "Run Analysis",
+    "filters": {
+      "pipeline": "Pipeline",
+      "status": "Status",
+      "allStatuses": "All Statuses"
+    },
+    "table": {
+      "pipeline": "Pipeline",
+      "startedAt": "Started At",
+      "completedAt": "Completed At",
+      "duration": "Duration",
+      "status": "Status",
+      "driftsFound": "Drifts Found",
+      "triggeredBy": "Triggered By"
+    },
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "detail": {
+      "title": "Scan Details",
+      "errorMessage": "Error Message",
+      "correlationId": "Correlation ID",
+      "stages": "Stages"
+    },
+    "stats": {
+      "title": "Scan Statistics",
+      "totalScans": "Total Scans",
+      "successRate": "Success Rate",
+      "avgDuration": "Avg Duration",
+      "lastScan": "Last Scan"
+    },
+    "triggers": {
+      "manual": "Manual",
+      "scheduled": "Scheduled",
+      "webhook": "Webhook"
+    }
+  },
+  "analysis": {
+    "title": "Analysis",
+    "inProgress": "Analysis in Progress",
+    "stages": {
+      "queued": "Queued",
+      "fetchingTerraform": "Fetching Terraform",
+      "parsingConfig": "Parsing Configuration",
+      "scanningResources": "Scanning Azure Resources",
+      "comparingState": "Comparing State",
+      "generatingReport": "Generating Report",
+      "complete": "Complete"
+    },
+    "progress": "{{percent}}% complete",
+    "eta": "Estimated time remaining: {{time}}",
+    "results": {
+      "title": "Analysis Results",
+      "driftsFound": "{{count}} drifts found",
+      "noDrifts": "No drifts detected",
+      "viewDetails": "View Details"
+    },
+    "errors": {
+      "failed": "Analysis failed",
+      "timeout": "Analysis timed out",
+      "retry": "Retry Analysis"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -136,12 +302,14 @@
   },
   "configuration": {
     "title": "Configuration",
-    "subtitle": "System settings",
+    "subtitle": "Manage connections, timer and notifications",
+    "restrictedAccess": "Restricted Access",
+    "restrictedMessage": "You need the Administrator role to access this section.",
     "tabs": {
       "connections": "Connections",
       "timer": "Timer",
       "recipients": "Recipients",
-      "ai": "AI Settings"
+      "ai": "Azure AI"
     },
     "connections": {
       "title": "Connections",
@@ -149,15 +317,26 @@
       "ado": "Azure DevOps Connections",
       "addAzure": "Add Azure Connection",
       "addAdo": "Add ADO Connection",
+      "noAzure": "No Azure connections configured",
+      "noAdo": "No ADO connections configured",
       "noConnections": "No connections configured",
       "testConnection": "Test Connection",
       "connectionSuccess": "Connection successful",
-      "connectionFailed": "Connection failed"
+      "connectionFailed": "Connection failed",
+      "tenant": "Tenant",
+      "client": "Client",
+      "auth": "Auth"
     },
     "timer": {
-      "title": "Scan Timer",
-      "description": "Configure how often the drift scan runs",
+      "title": "Timer Configuration",
+      "description": "Configure how often the drift scan runs.",
       "interval": "Scan Interval",
+      "status": "Status",
+      "paused": "Paused",
+      "nextRun": "Next run:",
+      "runEveryHours": "The analysis will run every {{hours}} hours",
+      "saved": "Timer configuration saved",
+      "saveChanges": "Save Changes",
       "intervals": {
         "1h": "Every hour",
         "6h": "Every 6 hours",
@@ -172,44 +351,128 @@
       "description": "Configure who receives drift reports",
       "addRecipient": "Add Recipient",
       "email": "Email Address",
-      "noRecipients": "No recipients configured"
+      "noRecipients": "No recipients configured",
+      "notifyOn": {
+        "label": "Notify",
+        "always": "All notifications",
+        "driftOnly": "Only when there is drift",
+        "weekly": "Weekly summary"
+      }
     },
     "ai": {
-      "title": "AI Configuration",
-      "description": "Configure Azure AI Foundry settings",
+      "title": "Azure AI Configuration",
+      "description": "Configure Azure AI Foundry to enable intelligent drift analysis with GPT.",
+      "notConfigured": "Azure AI not configured",
       "endpoint": "Endpoint",
       "deployment": "Deployment",
-      "apiKey": "API Key"
+      "apiKey": "API Key",
+      "configure": "Configure",
+      "configureAzureAi": "Configure Azure AI",
+      "testConnection": "Test connection"
+    },
+    "status": {
+      "active": "Active",
+      "expiring": "Expires {{date}}",
+      "expired": "Expired"
+    },
+    "modal": {
+      "newAzure": "New Azure Connection",
+      "newAdo": "New Azure DevOps Connection",
+      "newRecipient": "New Recipient",
+      "configureAi": "Configure Azure AI"
+    },
+    "fields": {
+      "name": "Name",
+      "tenantId": "Tenant ID",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "organizationUrl": "Organization URL",
+      "pat": "Personal Access Token",
+      "deploymentName": "Deployment Name"
+    },
+    "confirmDelete": {
+      "azure": "Delete this Azure connection?",
+      "ado": "Delete this ADO connection?",
+      "recipient": "Delete this recipient?"
     }
   },
   "billing": {
     "title": "Billing",
-    "subtitle": "Manage your subscription",
+    "subtitle": "Manage your subscription and billing",
+    "tabs": {
+      "subscription": "Subscription",
+      "invoices": "Invoices",
+      "billingInfo": "Billing Details"
+    },
     "currentPlan": "Current Plan",
-    "freePlan": "Free Plan",
-    "proPlan": "Pro Plan",
-    "enterprisePlan": "Enterprise Plan",
-    "upgrade": "Upgrade",
-    "downgrade": "Downgrade",
-    "cancel": "Cancel Subscription",
-    "features": "Features",
-    "price": "Price",
+    "changePlan": "Change Plan",
+    "selectPlan": "Select a Plan",
+    "cycle": "Cycle",
+    "nextRenewal": "Next renewal",
+    "cancelNotice": "Your subscription will be cancelled at the end of the current period",
+    "cancelSubscription": "Cancel Subscription",
+    "confirmCancel": "Are you sure you want to cancel your subscription?",
+    "cancelledMessage": "Subscription cancelled at the end of the current period",
+    "redirectingCheckout": "Redirecting to checkout for plan {{planId}}...",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "discount": "-20%",
     "perMonth": "/month",
+    "perYear": "/year",
+    "select": "Select",
+    "features": {
+      "pipelines": "{{count}} pipelines",
+      "subscriptions": "{{count}} Azure subscriptions",
+      "resourceGroups": "{{count}} resource groups",
+      "retention": "{{count}} days retention",
+      "aiAnalysis": "AI Analysis",
+      "emailReports": "Email Reports"
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "For small teams"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For growing teams"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For large organizations"
+      }
+    },
     "invoices": {
-      "title": "Invoices",
+      "title": "Invoice History",
+      "number": "Number",
       "date": "Date",
-      "amount": "Amount",
+      "total": "Total",
       "status": "Status",
+      "actions": "Actions",
       "download": "Download",
+      "noInvoices": "No invoices available",
       "paid": "Paid",
       "pending": "Pending",
       "failed": "Failed"
     },
-    "subscription": {
-      "title": "Subscription",
-      "status": "Status",
-      "nextBilling": "Next Billing",
-      "paymentMethod": "Payment Method"
+    "billingInfo": {
+      "title": "Billing Information",
+      "email": "Billing email",
+      "companyName": "Company name",
+      "vatNumber": "VAT/Tax ID",
+      "country": "Country",
+      "address": "Address",
+      "city": "City",
+      "postalCode": "Postal Code",
+      "saveChanges": "Save Changes"
+    },
+    "countries": {
+      "ES": "Spain",
+      "PT": "Portugal",
+      "FR": "France",
+      "DE": "Germany",
+      "IT": "Italy",
+      "NL": "Netherlands"
     }
   },
   "modal": {
@@ -233,5 +496,33 @@
     "loadFailed": "Failed to load data",
     "saveFailed": "Failed to save changes",
     "deleteFailed": "Failed to delete"
+  },
+  "pagination": {
+    "page": "Page",
+    "of": "of",
+    "items": "items",
+    "showing": "Showing {{from}} to {{to}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "perPage": "Per page"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "newDrift": "New drift detected",
+    "scanComplete": "Scan completed",
+    "scanFailed": "Scan failed",
+    "credentialExpiring": "Credential expiring soon",
+    "analysisStarted": "Analysis started",
+    "analysisComplete": "Analysis complete"
+  },
+  "signalr": {
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "reconnecting": "Reconnecting...",
+    "connectionLost": "Connection lost. Attempting to reconnect..."
   }
 }

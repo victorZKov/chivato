@@ -9,6 +9,8 @@
 #   docker compose build       - Rebuild images
 # ==========================================
 
+name: chivato-dev
+
 services:
   # ==========================================
   # Azurite - Azure Storage Emulator

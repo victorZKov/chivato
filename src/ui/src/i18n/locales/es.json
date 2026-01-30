@@ -42,8 +42,12 @@
   "nav": {
     "dashboard": "Panel",
     "pipelines": "Pipelines",
+    "driftHistory": "Historial de Drift",
+    "scans": "Logs de Escaneo",
+    "credentials": "Credenciales",
     "billing": "Facturación",
-    "configuration": "Configuración"
+    "configuration": "Configuración",
+    "documentation": "Documentación"
   },
   "theme": {
     "title": "Tema",
@@ -74,14 +78,176 @@
     "info": "Info"
   },
   "credentials": {
-    "title": "Estado de Credenciales",
-    "daysRemaining": "{{count}} días restantes"
+    "title": "Credenciales",
+    "subtitle": "Gestionar credenciales de conexión",
+    "status": "Estado",
+    "daysRemaining": "{{count}} días restantes",
+    "expired": "Expirado",
+    "expiringSoon": "Por Expirar",
+    "healthy": "Saludable",
+    "expiresAt": "Expira El",
+    "lastTested": "Última Prueba",
+    "neverTested": "Nunca probado",
+    "noCredentials": "No hay credenciales configuradas",
+    "types": {
+      "azure": "Azure",
+      "ado": "Azure DevOps",
+      "ai": "Servicio IA",
+      "email": "Servicio Email"
+    },
+    "actions": {
+      "test": "Probar Conexión",
+      "rotate": "Rotar Secreto",
+      "viewExpiring": "Ver Por Expirar"
+    },
+    "rotate": {
+      "title": "Rotar Credencial",
+      "newSecret": "Nuevo Secreto",
+      "expiresAt": "Nueva Fecha de Expiración",
+      "confirm": "¿Estás seguro de que quieres rotar esta credencial?"
+    },
+    "test": {
+      "success": "Prueba de conexión exitosa",
+      "failed": "Prueba de conexión fallida",
+      "testing": "Probando conexión..."
+    },
+    "alerts": {
+      "expiringSoon": "{{count}} credenciales expiran en 30 días",
+      "expired": "{{count}} credenciales han expirado"
+    }
   },
   "driftExamples": {
     "appServiceSku": "App Service SKU cambió de P1V2 a B1",
     "storageRedundancy": "Drift de redundancia en Storage Account (LRS → GRS)",
     "missingTags": "Tags faltantes en Resource Group",
     "diagnosticsDisabled": "Configuración de diagnóstico deshabilitada"
+  },
+  "drift": {
+    "title": "Historial de Drift",
+    "subtitle": "Ver todos los drifts de infraestructura detectados",
+    "noResults": "No se encontraron drifts",
+    "filters": {
+      "pipeline": "Pipeline",
+      "allPipelines": "Todos los Pipelines",
+      "severity": "Severidad",
+      "allSeverities": "Todas las Severidades",
+      "dateRange": "Rango de Fechas",
+      "from": "Desde",
+      "to": "Hasta",
+      "clear": "Limpiar Filtros"
+    },
+    "table": {
+      "resource": "Recurso",
+      "resourceType": "Tipo de Recurso",
+      "property": "Propiedad",
+      "expected": "Esperado",
+      "actual": "Actual",
+      "severity": "Severidad",
+      "detectedAt": "Detectado El",
+      "pipeline": "Pipeline",
+      "status": "Estado"
+    },
+    "detail": {
+      "title": "Detalles del Drift",
+      "description": "Descripción",
+      "recommendation": "Recomendación",
+      "category": "Categoría",
+      "resourceId": "ID del Recurso"
+    },
+    "stats": {
+      "title": "Estadísticas",
+      "total": "Total de Drifts",
+      "critical": "Críticos",
+      "high": "Altos",
+      "medium": "Medios",
+      "low": "Bajos",
+      "lastAnalysis": "Último Análisis"
+    },
+    "export": {
+      "title": "Exportar",
+      "format": "Formato",
+      "csv": "CSV",
+      "json": "JSON",
+      "download": "Descargar",
+      "exporting": "Exportando..."
+    },
+    "status": {
+      "new": "Nuevo",
+      "acknowledged": "Reconocido",
+      "resolved": "Resuelto",
+      "ignored": "Ignorado"
+    }
+  },
+  "scans": {
+    "title": "Logs de Escaneo",
+    "subtitle": "Ver historial y resultados de escaneos",
+    "noResults": "No se encontraron escaneos",
+    "runAnalysis": "Ejecutar Análisis",
+    "filters": {
+      "pipeline": "Pipeline",
+      "status": "Estado",
+      "allStatuses": "Todos los Estados"
+    },
+    "table": {
+      "pipeline": "Pipeline",
+      "startedAt": "Iniciado El",
+      "completedAt": "Completado El",
+      "duration": "Duración",
+      "status": "Estado",
+      "driftsFound": "Drifts Encontrados",
+      "triggeredBy": "Iniciado Por"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "running": "En Progreso",
+      "completed": "Completado",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    },
+    "detail": {
+      "title": "Detalles del Escaneo",
+      "errorMessage": "Mensaje de Error",
+      "correlationId": "ID de Correlación",
+      "stages": "Etapas"
+    },
+    "stats": {
+      "title": "Estadísticas de Escaneo",
+      "totalScans": "Total de Escaneos",
+      "successRate": "Tasa de Éxito",
+      "avgDuration": "Duración Promedio",
+      "lastScan": "Último Escaneo"
+    },
+    "triggers": {
+      "manual": "Manual",
+      "scheduled": "Programado",
+      "webhook": "Webhook"
+    }
+  },
+  "analysis": {
+    "title": "Análisis",
+    "inProgress": "Análisis en Progreso",
+    "stages": {
+      "queued": "En Cola",
+      "fetchingTerraform": "Obteniendo Terraform",
+      "parsingConfig": "Analizando Configuración",
+      "scanningResources": "Escaneando Recursos Azure",
+      "comparingState": "Comparando Estado",
+      "generatingReport": "Generando Reporte",
+      "complete": "Completo"
+    },
+    "progress": "{{percent}}% completado",
+    "eta": "Tiempo estimado restante: {{time}}",
+    "results": {
+      "title": "Resultados del Análisis",
+      "driftsFound": "{{count}} drifts encontrados",
+      "noDrifts": "No se detectaron drifts",
+      "viewDetails": "Ver Detalles"
+    },
+    "errors": {
+      "failed": "El análisis falló",
+      "timeout": "El análisis excedió el tiempo",
+      "retry": "Reintentar Análisis"
+    }
   },
   "dashboard": {
     "title": "Panel",
@@ -105,7 +271,7 @@
     "addFirst": "Agrega tu primer pipeline para comenzar a monitorear",
     "never": "Nunca",
     "noDrift": "Sin drift",
-    "driftCountLabel": "{{count}} desviaciones",
+    "driftCountLabel": "{{count}} drifts",
     "addedCount": "Se agregaron {{count}} pipelines para monitoreo",
     "table": {
       "name": "Nombre",
@@ -136,12 +302,14 @@
   },
   "configuration": {
     "title": "Configuración",
-    "subtitle": "Ajustes del sistema",
+    "subtitle": "Gestiona conexiones, timer y notificaciones",
+    "restrictedAccess": "Acceso Restringido",
+    "restrictedMessage": "Necesitas el rol de Administrador para acceder a esta sección.",
     "tabs": {
       "connections": "Conexiones",
-      "timer": "Temporizador",
+      "timer": "Timer",
       "recipients": "Destinatarios",
-      "ai": "Configuración IA"
+      "ai": "Azure AI"
     },
     "connections": {
       "title": "Conexiones",
@@ -149,15 +317,26 @@
       "ado": "Conexiones Azure DevOps",
       "addAzure": "Agregar Conexión Azure",
       "addAdo": "Agregar Conexión ADO",
+      "noAzure": "No hay conexiones Azure configuradas",
+      "noAdo": "No hay conexiones ADO configuradas",
       "noConnections": "No hay conexiones configuradas",
       "testConnection": "Probar Conexión",
       "connectionSuccess": "Conexión exitosa",
-      "connectionFailed": "Conexión fallida"
+      "connectionFailed": "Conexión fallida",
+      "tenant": "Tenant",
+      "client": "Client",
+      "auth": "Auth"
     },
     "timer": {
-      "title": "Temporizador de Escaneo",
-      "description": "Configura la frecuencia del escaneo de drift",
-      "interval": "Intervalo de Escaneo",
+      "title": "Configuración del Timer",
+      "description": "Configura la frecuencia con la que se ejecuta el análisis de drift.",
+      "interval": "Intervalo de ejecución",
+      "status": "Estado",
+      "paused": "Pausado",
+      "nextRun": "Próxima ejecución:",
+      "runEveryHours": "El análisis se ejecutará cada {{hours}} horas",
+      "saved": "Configuración de timer guardada",
+      "saveChanges": "Guardar Cambios",
       "intervals": {
         "1h": "Cada hora",
         "6h": "Cada 6 horas",
@@ -172,44 +351,128 @@
       "description": "Configura quién recibe los reportes de drift",
       "addRecipient": "Agregar Destinatario",
       "email": "Dirección de Email",
-      "noRecipients": "No hay destinatarios configurados"
+      "noRecipients": "No hay destinatarios configurados",
+      "notifyOn": {
+        "label": "Notificar",
+        "always": "Todas las notificaciones",
+        "driftOnly": "Solo cuando hay drift",
+        "weekly": "Resumen semanal"
+      }
     },
     "ai": {
-      "title": "Configuración de IA",
-      "description": "Configura los ajustes de Azure AI Foundry",
+      "title": "Configuración Azure AI",
+      "description": "Configura Azure AI Foundry para habilitar el análisis inteligente de drift con GPT.",
+      "notConfigured": "Azure AI no configurado",
       "endpoint": "Endpoint",
       "deployment": "Deployment",
-      "apiKey": "API Key"
+      "apiKey": "API Key",
+      "configure": "Configurar",
+      "configureAzureAi": "Configurar Azure AI",
+      "testConnection": "Probar conexión"
+    },
+    "status": {
+      "active": "Activo",
+      "expiring": "Expira {{date}}",
+      "expired": "Expirado"
+    },
+    "modal": {
+      "newAzure": "Nueva Conexión Azure",
+      "newAdo": "Nueva Conexión Azure DevOps",
+      "newRecipient": "Nuevo Destinatario",
+      "configureAi": "Configurar Azure AI"
+    },
+    "fields": {
+      "name": "Nombre",
+      "tenantId": "Tenant ID",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "organizationUrl": "URL de Organización",
+      "pat": "Personal Access Token",
+      "deploymentName": "Deployment Name"
+    },
+    "confirmDelete": {
+      "azure": "¿Eliminar esta conexión Azure?",
+      "ado": "¿Eliminar esta conexión ADO?",
+      "recipient": "¿Eliminar este destinatario?"
     }
   },
   "billing": {
     "title": "Facturación",
-    "subtitle": "Gestiona tu suscripción",
+    "subtitle": "Gestiona tu suscripción y facturación",
+    "tabs": {
+      "subscription": "Suscripción",
+      "invoices": "Facturas",
+      "billingInfo": "Datos de Facturación"
+    },
     "currentPlan": "Plan Actual",
-    "freePlan": "Plan Gratuito",
-    "proPlan": "Plan Pro",
-    "enterprisePlan": "Plan Enterprise",
-    "upgrade": "Mejorar",
-    "downgrade": "Reducir",
-    "cancel": "Cancelar Suscripción",
-    "features": "Características",
-    "price": "Precio",
+    "changePlan": "Cambiar Plan",
+    "selectPlan": "Selecciona un Plan",
+    "cycle": "Ciclo",
+    "nextRenewal": "Próxima renovación",
+    "cancelNotice": "Tu suscripción se cancelará al final del período actual",
+    "cancelSubscription": "Cancelar Suscripción",
+    "confirmCancel": "¿Estás seguro de que quieres cancelar tu suscripción?",
+    "cancelledMessage": "Suscripción cancelada al final del período actual",
+    "redirectingCheckout": "Redirigiendo a checkout para el plan {{planId}}...",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "discount": "-20%",
     "perMonth": "/mes",
+    "perYear": "/año",
+    "select": "Seleccionar",
+    "features": {
+      "pipelines": "{{count}} pipelines",
+      "subscriptions": "{{count}} suscripciones Azure",
+      "resourceGroups": "{{count}} resource groups",
+      "retention": "{{count}} días de retención",
+      "aiAnalysis": "Análisis con IA",
+      "emailReports": "Reportes por email"
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Para equipos pequeños"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Para equipos en crecimiento"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "Para grandes organizaciones"
+      }
+    },
     "invoices": {
-      "title": "Facturas",
+      "title": "Historial de Facturas",
+      "number": "Número",
       "date": "Fecha",
-      "amount": "Monto",
+      "total": "Total",
       "status": "Estado",
+      "actions": "Acciones",
       "download": "Descargar",
+      "noInvoices": "No hay facturas disponibles",
       "paid": "Pagado",
       "pending": "Pendiente",
       "failed": "Fallido"
     },
-    "subscription": {
-      "title": "Suscripción",
-      "status": "Estado",
-      "nextBilling": "Próxima Facturación",
-      "paymentMethod": "Método de Pago"
+    "billingInfo": {
+      "title": "Datos de Facturación",
+      "email": "Email de facturación",
+      "companyName": "Nombre de empresa",
+      "vatNumber": "NIF/VAT",
+      "country": "País",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "postalCode": "Código Postal",
+      "saveChanges": "Guardar Cambios"
+    },
+    "countries": {
+      "ES": "España",
+      "PT": "Portugal",
+      "FR": "Francia",
+      "DE": "Alemania",
+      "IT": "Italia",
+      "NL": "Países Bajos"
     }
   },
   "modal": {
@@ -233,5 +496,33 @@
     "loadFailed": "Error al cargar datos",
     "saveFailed": "Error al guardar cambios",
     "deleteFailed": "Error al eliminar"
+  },
+  "pagination": {
+    "page": "Página",
+    "of": "de",
+    "items": "elementos",
+    "showing": "Mostrando {{from}} a {{to}} de {{total}}",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "first": "Primera",
+    "last": "Última",
+    "perPage": "Por página"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "noNotifications": "Sin notificaciones",
+    "newDrift": "Nuevo drift detectado",
+    "scanComplete": "Escaneo completado",
+    "scanFailed": "Escaneo fallido",
+    "credentialExpiring": "Credencial por expirar",
+    "analysisStarted": "Análisis iniciado",
+    "analysisComplete": "Análisis completado"
+  },
+  "signalr": {
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "reconnecting": "Reconectando...",
+    "connectionLost": "Conexión perdida. Intentando reconectar..."
   }
 }
