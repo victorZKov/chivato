@@ -126,8 +126,8 @@ public class SaveAzureConnectionHandler : IRequestHandler<SaveAzureConnectionCom
             {
                 // Create new
                 connection = AzureConnection.Create(
-                    tenantId, request.Name, request.SubscriptionId,
-                    request.ClientId, secretName, request.IsDefault
+                    tenantId, request.Name, request.TenantId,
+                    request.SubscriptionId, request.ClientId, secretName, request.IsDefault
                 );
                 await _repository.AddAsync(connection, ct);
             }
@@ -137,7 +137,7 @@ public class SaveAzureConnectionHandler : IRequestHandler<SaveAzureConnectionCom
                 connection = await _repository.GetByIdAsync(tenantId, request.Id, ct)
                     ?? throw new InvalidOperationException("Connection not found");
 
-                connection.Update(request.Name, request.SubscriptionId, request.ClientId, secretName);
+                connection.Update(request.Name, request.TenantId, request.SubscriptionId, request.ClientId, secretName);
 
                 if (request.IsDefault)
                     connection.MarkAsDefault();

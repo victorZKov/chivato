@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
 import { configApi } from "../../services/api";
+import { useToast, ToastContainer } from "../common/Toast";
 import type {
   AzureConnection,
   AdoConnection,
@@ -20,6 +21,7 @@ type TabType = "connections" | "timer" | "recipients" | "ai";
 export function Configuration() {
   const { t } = useTranslation();
   const { isAdmin } = useRoles();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("connections");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +74,7 @@ export function Configuration() {
       const input: CreateAzureConnectionInput = {
         name: data.name,
         tenantId: data.tenantId,
+        subscriptionId: data.subscriptionId,
         clientId: data.clientId,
         clientSecret: data.clientSecret,
       };
@@ -80,7 +83,7 @@ export function Configuration() {
       loadData();
     } catch (err) {
       console.error("Error saving Azure connection:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -99,7 +102,7 @@ export function Configuration() {
       loadData();
     } catch (err) {
       console.error("Error saving ADO connection:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -119,7 +122,7 @@ export function Configuration() {
       loadData();
     } catch (err) {
       console.error("Error saving AI connection:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -137,7 +140,7 @@ export function Configuration() {
       loadData();
     } catch (err) {
       console.error("Error saving recipient:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -150,7 +153,7 @@ export function Configuration() {
       setAzureConnections((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Error deleting Azure connection:", err);
-      alert(t("errors.deleteFailed"));
+      toast.error(t("errors.deleteFailed"));
     }
   };
 
@@ -161,7 +164,7 @@ export function Configuration() {
       setAdoConnections((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Error deleting ADO connection:", err);
-      alert(t("errors.deleteFailed"));
+      toast.error(t("errors.deleteFailed"));
     }
   };
 
@@ -172,7 +175,7 @@ export function Configuration() {
       setEmailRecipients((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
       console.error("Error deleting recipient:", err);
-      alert(t("errors.deleteFailed"));
+      toast.error(t("errors.deleteFailed"));
     }
   };
 
@@ -184,7 +187,7 @@ export function Configuration() {
       );
     } catch (err) {
       console.error("Error toggling recipient:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     }
   };
 
@@ -196,10 +199,10 @@ export function Configuration() {
     setSaving(true);
     try {
       await configApi.updateTimerConfig(timerConfig);
-      alert(t("configuration.timer.saved"));
+      toast.success(t("configuration.timer.saved"));
     } catch (err) {
       console.error("Error saving timer:", err);
-      alert(t("errors.saveFailed"));
+      toast.error(t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -208,27 +211,39 @@ export function Configuration() {
   const handleTestAzureConnection = async (id: string) => {
     try {
       const result = await configApi.testAzureConnection(id);
-      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+      if (result.success) {
+        toast.success(t("configuration.connections.connectionSuccess"));
+      } else {
+        toast.error(t("configuration.connections.connectionFailed"));
+      }
     } catch (err) {
-      alert(t("configuration.connections.connectionFailed"));
+      toast.error(t("configuration.connections.connectionFailed"));
     }
   };
 
   const handleTestAdoConnection = async (id: string) => {
     try {
       const result = await configApi.testAdoConnection(id);
-      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+      if (result.success) {
+        toast.success(t("configuration.connections.connectionSuccess"));
+      } else {
+        toast.error(t("configuration.connections.connectionFailed"));
+      }
     } catch (err) {
-      alert(t("configuration.connections.connectionFailed"));
+      toast.error(t("configuration.connections.connectionFailed"));
     }
   };
 
   const handleTestAiConnection = async () => {
     try {
       const result = await configApi.testAiConnection();
-      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+      if (result.success) {
+        toast.success(t("configuration.connections.connectionSuccess"));
+      } else {
+        toast.error(t("configuration.connections.connectionFailed"));
+      }
     } catch (err) {
-      alert(t("configuration.connections.connectionFailed"));
+      toast.error(t("configuration.connections.connectionFailed"));
     }
   };
 
@@ -269,6 +284,7 @@ export function Configuration() {
 
   return (
     <div className="configuration">
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="config-header">
         <h1>{t("configuration.title")}</h1>
         <p className="text-muted">{t("configuration.subtitle")}</p>
@@ -568,8 +584,9 @@ export function Configuration() {
           saving={saving}
           fields={[
             { name: "name", label: t("configuration.fields.name"), type: "text", required: true },
-            { name: "tenantId", label: t("configuration.fields.tenantId"), type: "text", required: true },
-            { name: "clientId", label: t("configuration.fields.clientId"), type: "text", required: true },
+            { name: "tenantId", label: t("configuration.fields.tenantId"), type: "text", required: true, placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+            { name: "subscriptionId", label: t("configuration.fields.subscriptionId"), type: "text", required: true, placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+            { name: "clientId", label: t("configuration.fields.clientId"), type: "text", required: true, placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
             { name: "clientSecret", label: t("configuration.fields.clientSecret"), type: "password", required: true },
           ]}
           t={t}

@@ -384,6 +384,7 @@
     "fields": {
       "name": "Nombre",
       "tenantId": "Tenant ID",
+      "subscriptionId": "Subscription ID",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "organizationUrl": "URL de Organización",

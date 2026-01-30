@@ -38,6 +38,7 @@ public record ConfigurationDto(
 public record AzureConnectionDto(
     string Id,
     string Name,
+    string TenantId,
     string SubscriptionId,
     string ClientId,
     string Status,

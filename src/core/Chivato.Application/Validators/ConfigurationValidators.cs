@@ -41,6 +41,10 @@ public class SaveAzureConnectionCommandValidator : AbstractValidator<SaveAzureCo
             .NotEmpty().WithMessage("Name is required")
             .MaximumLength(100);
 
+        RuleFor(x => x.TenantId)
+            .NotEmpty().WithMessage("Tenant ID is required")
+            .Must(BeValidGuid).WithMessage("Tenant ID must be a valid GUID");
+
         RuleFor(x => x.SubscriptionId)
             .NotEmpty().WithMessage("Subscription ID is required")
             .Must(BeValidGuid).WithMessage("Subscription ID must be a valid GUID");

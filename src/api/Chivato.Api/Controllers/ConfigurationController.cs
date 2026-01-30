@@ -78,6 +78,7 @@ public class ConfigurationController : ControllerBase
         var command = new SaveAzureConnectionCommand(
             Id: null,
             Name: request.Name,
+            TenantId: request.TenantId,
             SubscriptionId: request.SubscriptionId,
             ClientId: request.ClientId,
             ClientSecret: request.ClientSecret
@@ -184,6 +185,7 @@ public record UpdateSettingsRequest(
 
 public record CreateAzureConnectionRequest(
     string Name,
+    string TenantId,
     string SubscriptionId,
     string ClientId,
     string ClientSecret

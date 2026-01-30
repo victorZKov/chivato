@@ -166,17 +166,20 @@ export interface AzureConnection {
   id: string;
   name: string;
   tenantId: string;
+  subscriptionId: string;
   clientId: string;
-  status: "active" | "expiring" | "expired";
-  expiresAt?: string;
+  status: "Connected" | "Error" | "Unknown";
+  lastTestedAt?: string;
+  lastTestError?: string;
+  isDefault: boolean;
 }
 
 export interface CreateAzureConnectionInput {
   name: string;
   tenantId: string;
+  subscriptionId: string;
   clientId: string;
   clientSecret: string;
-  subscriptionIds?: string[];
 }
 
 export interface AdoConnection {

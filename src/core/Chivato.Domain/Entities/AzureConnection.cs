@@ -8,6 +8,7 @@ namespace Chivato.Domain.Entities;
 public class AzureConnection : BaseEntity
 {
     public string Name { get; private set; } = string.Empty;
+    public string AzureTenantId { get; private set; } = string.Empty; // Azure AD Tenant ID for auth
     public string SubscriptionId { get; private set; } = string.Empty;
     public string ClientId { get; private set; } = string.Empty;
     public string ClientSecretKeyVaultKey { get; private set; } = string.Empty;
@@ -21,6 +22,7 @@ public class AzureConnection : BaseEntity
     public static AzureConnection Create(
         string tenantId,
         string name,
+        string azureTenantId,
         string subscriptionId,
         string clientId,
         string clientSecretKeyVaultKey,
@@ -31,6 +33,7 @@ public class AzureConnection : BaseEntity
             Id = Guid.NewGuid().ToString(),
             TenantId = tenantId,
             Name = name,
+            AzureTenantId = azureTenantId,
             SubscriptionId = subscriptionId,
             ClientId = clientId,
             ClientSecretKeyVaultKey = clientSecretKeyVaultKey,
@@ -44,9 +47,10 @@ public class AzureConnection : BaseEntity
         return connection;
     }
 
-    public void Update(string name, string subscriptionId, string clientId, string clientSecretKeyVaultKey)
+    public void Update(string name, string azureTenantId, string subscriptionId, string clientId, string clientSecretKeyVaultKey)
     {
         Name = name;
+        AzureTenantId = azureTenantId;
         SubscriptionId = subscriptionId;
         ClientId = clientId;
         ClientSecretKeyVaultKey = clientSecretKeyVaultKey;
@@ -93,6 +97,7 @@ public class AzureConnection : BaseEntity
         string id,
         string tenantId,
         string name,
+        string azureTenantId,
         string subscriptionId,
         string clientId,
         string clientSecretKeyVaultKey,
@@ -108,6 +113,7 @@ public class AzureConnection : BaseEntity
             Id = id,
             TenantId = tenantId,
             Name = name,
+            AzureTenantId = azureTenantId,
             SubscriptionId = subscriptionId,
             ClientId = clientId,
             ClientSecretKeyVaultKey = clientSecretKeyVaultKey,

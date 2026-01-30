@@ -22,6 +22,7 @@ public record UpdateSettingsCommand(
 public record SaveAzureConnectionCommand(
     string? Id,
     string Name,
+    string TenantId,
     string SubscriptionId,
     string ClientId,
     string ClientSecret,

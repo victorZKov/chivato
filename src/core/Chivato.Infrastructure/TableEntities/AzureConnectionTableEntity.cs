@@ -6,6 +6,7 @@ namespace Chivato.Infrastructure.TableEntities;
 public class AzureConnectionTableEntity : BaseTableEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string AzureTenantId { get; set; } = string.Empty;
     public string SubscriptionId { get; set; } = string.Empty;
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecretKeyVaultKey { get; set; } = string.Empty;
@@ -21,6 +22,7 @@ public class AzureConnectionTableEntity : BaseTableEntity
             PartitionKey = connection.TenantId,
             RowKey = connection.Id,
             Name = connection.Name,
+            AzureTenantId = connection.AzureTenantId,
             SubscriptionId = connection.SubscriptionId,
             ClientId = connection.ClientId,
             ClientSecretKeyVaultKey = connection.ClientSecretKeyVaultKey,
@@ -39,6 +41,7 @@ public class AzureConnectionTableEntity : BaseTableEntity
             id: RowKey,
             tenantId: PartitionKey,
             name: Name,
+            azureTenantId: AzureTenantId,
             subscriptionId: SubscriptionId,
             clientId: ClientId,
             clientSecretKeyVaultKey: ClientSecretKeyVaultKey,

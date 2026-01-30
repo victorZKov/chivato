@@ -57,7 +57,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationQuery, Co
     }
 
     private static AzureConnectionDto MapAzureConnection(AzureConnection c) => new(
-        c.Id, c.Name, c.SubscriptionId, c.ClientId,
+        c.Id, c.Name, c.AzureTenantId, c.SubscriptionId, c.ClientId,
         c.Status.ToString(), c.LastTestedAt, c.LastTestError, c.IsDefault
     );
 
@@ -89,7 +89,7 @@ public class GetAzureConnectionsHandler : IRequestHandler<GetAzureConnectionsQue
     {
         var connections = await _repository.GetAllAsync(_currentUser.TenantId, ct);
         return connections.Select(c => new AzureConnectionDto(
-            c.Id, c.Name, c.SubscriptionId, c.ClientId,
+            c.Id, c.Name, c.AzureTenantId, c.SubscriptionId, c.ClientId,
             c.Status.ToString(), c.LastTestedAt, c.LastTestError, c.IsDefault
         )).ToList();
     }
