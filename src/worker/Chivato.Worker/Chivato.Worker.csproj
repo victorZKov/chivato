@@ -11,7 +11,9 @@
   <ItemGroup>
     <!-- Clean Architecture layers -->
     <ProjectReference Include="..\..\core\Chivato.Application\Chivato.Application.csproj" />
+    <ProjectReference Include="..\..\core\Chivato.Domain\Chivato.Domain.csproj" />
     <ProjectReference Include="..\..\infrastructure\Chivato.Infrastructure\Chivato.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\shared\Chivato.Shared\Chivato.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

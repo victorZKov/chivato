@@ -1,5 +1,6 @@
 using Azure.Messaging.ServiceBus;
 using Chivato.Application.Commands.Analysis;
+using Chivato.Domain.Interfaces;
 using System.Text.Json;
 
 namespace Chivato.Infrastructure.MessageQueue;
@@ -29,6 +30,26 @@ public class ServiceBusMessageQueue : IMessageQueueService, IAsyncDisposable
         };
 
         // Add correlation ID if available
+        if (message is DriftAnalysisMessage analysisMessage)
+        {
+            serviceBusMessage.CorrelationId = analysisMessage.CorrelationId;
+        }
+
+        await sender.SendMessageAsync(serviceBusMessage, ct);
+    }
+
+    public async Task SendAsync<T>(string queueName, T message, TimeSpan delay, CancellationToken ct = default) where T : class
+    {
+        var sender = GetOrCreateSender(queueName);
+
+        var json = JsonSerializer.Serialize(message);
+        var serviceBusMessage = new ServiceBusMessage(json)
+        {
+            ContentType = "application/json",
+            MessageId = Guid.NewGuid().ToString(),
+            ScheduledEnqueueTime = DateTimeOffset.UtcNow.Add(delay)
+        };
+
         if (message is DriftAnalysisMessage analysisMessage)
         {
             serviceBusMessage.CorrelationId = analysisMessage.CorrelationId;
