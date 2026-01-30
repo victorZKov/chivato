@@ -3,33 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
 import { useModalContext } from "../../contexts/ModalContext";
 import { Modal } from "../common/Modal";
+import { pipelinesApi, configApi } from "../../services/api";
+import type { Pipeline, AzureConnection, AdoConnection } from "../../services/api";
 import "./Pipelines.css";
-
-interface Pipeline {
-  id: string;
-  pipelineName: string;
-  pipelineId: string;
-  projectName: string;
-  organizationUrl: string;
-  adoConnectionId: string;
-  adoConnectionName: string;
-  azureConnectionId: string;
-  azureConnectionName: string;
-  isActive: boolean;
-  lastScanAt?: string;
-  driftCount?: number;
-}
-
-interface AdoConnection {
-  id: string;
-  name: string;
-  organizationUrl: string;
-}
-
-interface AzureConnection {
-  id: string;
-  name: string;
-}
 
 interface AdoProject {
   name: string;
@@ -48,6 +24,7 @@ export function Pipelines() {
   const [adoConnections, setAdoConnections] = useState<AdoConnection[]>([]);
   const [azureConnections, setAzureConnections] = useState<AzureConnection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Form state
@@ -66,13 +43,19 @@ export function Pipelines() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // In production, these would be API calls
-      setPipelines(mockPipelines);
-      setAdoConnections(mockAdoConnections);
-      setAzureConnections(mockAzureConnections);
-    } catch (error) {
-      console.error("Error loading data:", error);
+      const [pipelinesData, adoData, azureData] = await Promise.all([
+        pipelinesApi.getPipelines(),
+        configApi.getAdoConnections(),
+        configApi.getAzureConnections(),
+      ]);
+      setPipelines(pipelinesData);
+      setAdoConnections(adoData);
+      setAzureConnections(azureData);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -88,9 +71,14 @@ export function Pipelines() {
 
     setLoadingProjects(true);
     try {
-      // In production: fetch projects from ADO via API
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setProjects(mockProjects);
+      const projectNames = await pipelinesApi.getAdoProjects(connectionId);
+      setProjects(projectNames.map((name) => ({ name })));
+    } catch (err) {
+      console.error("Error loading projects:", err);
+      modal.alert({
+        message: t("errors.loadFailed"),
+        variant: "error",
+      });
     } finally {
       setLoadingProjects(false);
     }
@@ -105,9 +93,14 @@ export function Pipelines() {
 
     setLoadingPipelines(true);
     try {
-      // In production: fetch pipelines from ADO via API
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setAvailablePipelines(mockAvailablePipelines);
+      const pipelines = await pipelinesApi.getAdoPipelines(selectedAdoConnection, projectName);
+      setAvailablePipelines(pipelines);
+    } catch (err) {
+      console.error("Error loading pipelines:", err);
+      modal.alert({
+        message: t("errors.loadFailed"),
+        variant: "error",
+      });
     } finally {
       setLoadingPipelines(false);
     }
@@ -122,26 +115,58 @@ export function Pipelines() {
   };
 
   const handleAddPipelines = async () => {
-    console.log("Adding pipelines:", {
-      adoConnection: selectedAdoConnection,
-      azureConnection: selectedAzureConnection,
-      project: selectedProject,
-      pipelines: selectedPipelines,
-    });
-    // In production: call API to add pipelines
-    modal.alert({
-      message: t("pipelines.addedCount", { count: selectedPipelines.length }),
-      variant: "success",
-    });
-    setShowAddModal(false);
-    resetForm();
+    try {
+      await pipelinesApi.createPipelines({
+        adoConnectionId: selectedAdoConnection,
+        azureConnectionId: selectedAzureConnection,
+        projectName: selectedProject,
+        pipelineIds: selectedPipelines,
+      });
+      modal.alert({
+        message: t("pipelines.addedCount", { count: selectedPipelines.length }),
+        variant: "success",
+      });
+      setShowAddModal(false);
+      resetForm();
+      loadData(); // Reload pipeline list
+    } catch (err) {
+      console.error("Error adding pipelines:", err);
+      modal.alert({
+        message: t("errors.saveFailed"),
+        variant: "error",
+      });
+    }
   };
 
   const handleToggleActive = async (pipelineId: string, isActive: boolean) => {
-    console.log("Toggle pipeline:", pipelineId, "to", !isActive);
-    setPipelines((prev) =>
-      prev.map((p) => (p.id === pipelineId ? { ...p, isActive: !isActive } : p))
-    );
+    try {
+      await pipelinesApi.updatePipeline(pipelineId, { isActive: !isActive });
+      setPipelines((prev) =>
+        prev.map((p) => (p.id === pipelineId ? { ...p, isActive: !isActive } : p))
+      );
+    } catch (err) {
+      console.error("Error toggling pipeline:", err);
+      modal.alert({
+        message: t("errors.saveFailed"),
+        variant: "error",
+      });
+    }
+  };
+
+  const handleScan = async (pipelineId: string) => {
+    try {
+      const result = await pipelinesApi.scanPipeline(pipelineId);
+      modal.alert({
+        message: result.message || `Scan triggered. Drifts found: ${result.driftCount}`,
+        variant: result.success ? "success" : "warning",
+      });
+    } catch (err) {
+      console.error("Error scanning pipeline:", err);
+      modal.alert({
+        message: t("errors.generic"),
+        variant: "error",
+      });
+    }
   };
 
   const handleDelete = async (pipelineId: string) => {
@@ -155,8 +180,16 @@ export function Pipelines() {
 
     if (!confirmed) return;
 
-    console.log("Delete pipeline:", pipelineId);
-    setPipelines((prev) => prev.filter((p) => p.id !== pipelineId));
+    try {
+      await pipelinesApi.deletePipeline(pipelineId);
+      setPipelines((prev) => prev.filter((p) => p.id !== pipelineId));
+    } catch (err) {
+      console.error("Error deleting pipeline:", err);
+      modal.alert({
+        message: t("errors.deleteFailed"),
+        variant: "error",
+      });
+    }
   };
 
   const resetForm = () => {
@@ -185,6 +218,15 @@ export function Pipelines() {
           </button>
         )}
       </div>
+
+      {error && (
+        <div className="error-banner">
+          <span>{error}</span>
+          <button className="btn btn-sm" onClick={loadData}>
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
 
       {pipelines.length === 0 ? (
         <div className="pipelines-empty card">
@@ -236,6 +278,14 @@ export function Pipelines() {
               </span>
               {isAdmin && (
                 <div className="pipeline-actions">
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleScan(pipeline.id)}
+                    title={t("pipelines.actions.scan")}
+                    disabled={!pipeline.isActive}
+                  >
+                    🔍
+                  </button>
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={() => handleToggleActive(pipeline.id, pipeline.isActive)}
@@ -364,75 +414,3 @@ export function Pipelines() {
     </div>
   );
 }
-
-// Mock data for development
-const mockPipelines: Pipeline[] = [
-  {
-    id: "1",
-    pipelineName: "infra-prod-deploy",
-    pipelineId: "123",
-    projectName: "Infrastructure",
-    organizationUrl: "https://dev.azure.com/myorg",
-    adoConnectionId: "ado-1",
-    adoConnectionName: "MyOrg ADO",
-    azureConnectionId: "azure-1",
-    azureConnectionName: "Prod Subscription",
-    isActive: true,
-    lastScanAt: "2h ago",
-    driftCount: 3,
-  },
-  {
-    id: "2",
-    pipelineName: "infra-staging-deploy",
-    pipelineId: "124",
-    projectName: "Infrastructure",
-    organizationUrl: "https://dev.azure.com/myorg",
-    adoConnectionId: "ado-1",
-    adoConnectionName: "MyOrg ADO",
-    azureConnectionId: "azure-2",
-    azureConnectionName: "Staging Subscription",
-    isActive: true,
-    lastScanAt: "2h ago",
-    driftCount: 0,
-  },
-  {
-    id: "3",
-    pipelineName: "storage-setup",
-    pipelineId: "125",
-    projectName: "Storage",
-    organizationUrl: "https://dev.azure.com/myorg",
-    adoConnectionId: "ado-1",
-    adoConnectionName: "MyOrg ADO",
-    azureConnectionId: "azure-1",
-    azureConnectionName: "Prod Subscription",
-    isActive: false,
-    lastScanAt: "1 week ago",
-    driftCount: 1,
-  },
-];
-
-const mockAdoConnections: AdoConnection[] = [
-  { id: "ado-1", name: "MyOrg ADO", organizationUrl: "https://dev.azure.com/myorg" },
-  { id: "ado-2", name: "SecondOrg", organizationUrl: "https://dev.azure.com/secondorg" },
-];
-
-const mockAzureConnections: AzureConnection[] = [
-  { id: "azure-1", name: "Prod Subscription" },
-  { id: "azure-2", name: "Staging Subscription" },
-  { id: "azure-3", name: "Dev Subscription" },
-];
-
-const mockProjects: AdoProject[] = [
-  { name: "Infrastructure" },
-  { name: "Application" },
-  { name: "Storage" },
-  { name: "Networking" },
-];
-
-const mockAvailablePipelines: AdoPipeline[] = [
-  { id: "p1", name: "infra-main-deploy" },
-  { id: "p2", name: "infra-staging-deploy" },
-  { id: "p3", name: "infra-dev-deploy" },
-  { id: "p4", name: "bicep-validation" },
-  { id: "p5", name: "terraform-plan" },
-];

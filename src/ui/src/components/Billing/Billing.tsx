@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
 import "./Billing.css";
 
@@ -69,6 +70,7 @@ interface BillingInfo {
 type TabType = "subscription" | "invoices" | "billing-info";
 
 export function Billing() {
+  const { t, i18n } = useTranslation();
   const { isAdmin } = useRoles();
   const [activeTab, setActiveTab] = useState<TabType>("subscription");
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -102,25 +104,25 @@ export function Billing() {
     // Create checkout session
     console.log("Selected plan:", planId, "Cycle:", billingCycle);
     // In production: redirect to Mollie checkout
-    alert(`Redirigiendo a checkout para el plan ${planId}...`);
+    alert(t("billing.redirectingCheckout", { planId }));
   };
 
   const handleCancelSubscription = async () => {
-    if (window.confirm("¿Estás seguro de que quieres cancelar tu suscripción?")) {
+    if (window.confirm(t("billing.confirmCancel"))) {
       console.log("Cancelling subscription");
-      alert("Suscripción cancelada al final del período actual");
+      alert(t("billing.cancelledMessage"));
     }
   };
 
   if (loading) {
-    return <div className="billing-loading">Cargando...</div>;
+    return <div className="billing-loading">{t("common.loading")}</div>;
   }
 
   return (
     <div className="billing">
       <div className="billing-header">
-        <h1>Billing</h1>
-        <p className="text-muted">Gestiona tu suscripción y facturación</p>
+        <h1>{t("billing.title")}</h1>
+        <p className="text-muted">{t("billing.subtitle")}</p>
       </div>
 
       <div className="billing-tabs">
@@ -128,20 +130,20 @@ export function Billing() {
           className={`tab-btn ${activeTab === "subscription" ? "active" : ""}`}
           onClick={() => setActiveTab("subscription")}
         >
-          Suscripción
+          {t("billing.tabs.subscription")}
         </button>
         <button
           className={`tab-btn ${activeTab === "invoices" ? "active" : ""}`}
           onClick={() => setActiveTab("invoices")}
         >
-          Facturas
+          {t("billing.tabs.invoices")}
         </button>
         {isAdmin && (
           <button
             className={`tab-btn ${activeTab === "billing-info" ? "active" : ""}`}
             onClick={() => setActiveTab("billing-info")}
           >
-            Datos de Facturación
+            {t("billing.tabs.billingInfo")}
           </button>
         )}
       </div>
@@ -152,7 +154,7 @@ export function Billing() {
             {/* Current Subscription */}
             {subscription?.hasSubscription && subscription.subscription && (
               <div className="current-subscription card">
-                <h2>Plan Actual</h2>
+                <h2>{t("billing.currentPlan")}</h2>
                 <div className="subscription-details">
                   <div className="plan-badge">
                     <span className="plan-name">{subscription.plan?.name}</span>
@@ -162,21 +164,21 @@ export function Billing() {
                   </div>
                   <div className="subscription-info">
                     <p>
-                      <strong>Ciclo:</strong> {subscription.subscription.billingCycle === "Monthly" ? "Mensual" : "Anual"}
+                      <strong>{t("billing.cycle")}:</strong> {subscription.subscription.billingCycle === "Monthly" ? t("billing.monthly") : t("billing.yearly")}
                     </p>
                     <p>
-                      <strong>Próxima renovación:</strong>{" "}
-                      {new Date(subscription.subscription.currentPeriodEnd).toLocaleDateString("es-ES")}
+                      <strong>{t("billing.nextRenewal")}:</strong>{" "}
+                      {new Date(subscription.subscription.currentPeriodEnd).toLocaleDateString(i18n.language === "es" ? "es-ES" : "en-US")}
                     </p>
                     {subscription.subscription.cancelAtPeriodEnd && (
                       <p className="cancel-notice">
-                        ⚠️ Tu suscripción se cancelará al final del período actual
+                        ⚠️ {t("billing.cancelNotice")}
                       </p>
                     )}
                   </div>
                   {isAdmin && !subscription.subscription.cancelAtPeriodEnd && (
                     <button className="btn btn-outline" onClick={handleCancelSubscription}>
-                      Cancelar Suscripción
+                      {t("billing.cancelSubscription")}
                     </button>
                   )}
                 </div>
@@ -186,19 +188,19 @@ export function Billing() {
             {/* Plan Selector */}
             <div className="plan-selector">
               <div className="selector-header">
-                <h2>{subscription?.hasSubscription ? "Cambiar Plan" : "Selecciona un Plan"}</h2>
+                <h2>{subscription?.hasSubscription ? t("billing.changePlan") : t("billing.selectPlan")}</h2>
                 <div className="billing-cycle-toggle">
                   <button
                     className={`cycle-btn ${billingCycle === "Monthly" ? "active" : ""}`}
                     onClick={() => setBillingCycle("Monthly")}
                   >
-                    Mensual
+                    {t("billing.monthly")}
                   </button>
                   <button
                     className={`cycle-btn ${billingCycle === "Yearly" ? "active" : ""}`}
                     onClick={() => setBillingCycle("Yearly")}
                   >
-                    Anual <span className="discount">-20%</span>
+                    {t("billing.yearly")} <span className="discount">{t("billing.discount")}</span>
                   </button>
                 </div>
               </div>
@@ -210,25 +212,25 @@ export function Billing() {
                     className={`plan-card ${subscription?.plan?.id === plan.id ? "current" : ""}`}
                   >
                     <div className="plan-header">
-                      <h3>{plan.name}</h3>
-                      <p className="plan-description">{plan.description}</p>
+                      <h3>{t(`billing.plans.${plan.code}.name`)}</h3>
+                      <p className="plan-description">{t(`billing.plans.${plan.code}.description`)}</p>
                     </div>
                     <div className="plan-price">
                       <span className="price">
                         €{billingCycle === "Monthly" ? plan.priceMonthly : plan.priceYearly / 12}
                       </span>
-                      <span className="period">/mes</span>
+                      <span className="period">{t("billing.perMonth")}</span>
                       {billingCycle === "Yearly" && (
-                        <p className="yearly-total">€{plan.priceYearly}/año</p>
+                        <p className="yearly-total">€{plan.priceYearly}{t("billing.perYear")}</p>
                       )}
                     </div>
                     <ul className="plan-features">
-                      <li>✓ {plan.limits.maxPipelines} pipelines</li>
-                      <li>✓ {plan.limits.maxSubscriptions} subscripciones Azure</li>
-                      <li>✓ {plan.limits.maxResourceGroups} resource groups</li>
-                      <li>✓ {plan.limits.retentionDays} días de retención</li>
-                      {plan.limits.aiAnalysisEnabled && <li>✓ Análisis con AI</li>}
-                      {plan.limits.emailReportsEnabled && <li>✓ Reportes por email</li>}
+                      <li>✓ {t("billing.features.pipelines", { count: plan.limits.maxPipelines })}</li>
+                      <li>✓ {t("billing.features.subscriptions", { count: plan.limits.maxSubscriptions })}</li>
+                      <li>✓ {t("billing.features.resourceGroups", { count: plan.limits.maxResourceGroups })}</li>
+                      <li>✓ {t("billing.features.retention", { count: plan.limits.retentionDays })}</li>
+                      {plan.limits.aiAnalysisEnabled && <li>✓ {t("billing.features.aiAnalysis")}</li>}
+                      {plan.limits.emailReportsEnabled && <li>✓ {t("billing.features.emailReports")}</li>}
                     </ul>
                     {isAdmin && (
                       <button
@@ -236,7 +238,7 @@ export function Billing() {
                         onClick={() => handleSelectPlan(plan.id)}
                         disabled={subscription?.plan?.id === plan.id}
                       >
-                        {subscription?.plan?.id === plan.id ? "Plan Actual" : "Seleccionar"}
+                        {subscription?.plan?.id === plan.id ? t("billing.currentPlan") : t("billing.select")}
                       </button>
                     )}
                   </div>
@@ -248,33 +250,33 @@ export function Billing() {
 
         {activeTab === "invoices" && (
           <div className="invoices-tab">
-            <h2>Historial de Facturas</h2>
+            <h2>{t("billing.invoices.title")}</h2>
             {invoices.length === 0 ? (
-              <p className="no-invoices">No hay facturas disponibles</p>
+              <p className="no-invoices">{t("billing.invoices.noInvoices")}</p>
             ) : (
               <table className="invoices-table">
                 <thead>
                   <tr>
-                    <th>Número</th>
-                    <th>Fecha</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th>{t("billing.invoices.number")}</th>
+                    <th>{t("billing.invoices.date")}</th>
+                    <th>{t("billing.invoices.total")}</th>
+                    <th>{t("billing.invoices.status")}</th>
+                    <th>{t("billing.invoices.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td>{invoice.invoiceNumber}</td>
-                      <td>{new Date(invoice.createdAt).toLocaleDateString("es-ES")}</td>
+                      <td>{new Date(invoice.createdAt).toLocaleDateString(i18n.language === "es" ? "es-ES" : "en-US")}</td>
                       <td>€{invoice.total.toFixed(2)}</td>
                       <td>
                         <span className={`status-badge status-${invoice.status.toLowerCase()}`}>
-                          {invoice.status}
+                          {t(`billing.invoices.${invoice.status.toLowerCase()}`)}
                         </span>
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm">Descargar</button>
+                        <button className="btn btn-ghost btn-sm">{t("billing.invoices.download")}</button>
                       </td>
                     </tr>
                   ))}
@@ -286,29 +288,29 @@ export function Billing() {
 
         {activeTab === "billing-info" && isAdmin && (
           <div className="billing-info-tab">
-            <h2>Datos de Facturación</h2>
+            <h2>{t("billing.billingInfo.title")}</h2>
             <form className="billing-form" onSubmit={(e) => e.preventDefault()}>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Email de facturación</label>
+                  <label>{t("billing.billingInfo.email")}</label>
                   <input
                     type="email"
                     defaultValue={billingInfo?.email}
-                    placeholder="facturacion@empresa.com"
+                    placeholder="billing@company.com"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Nombre de empresa</label>
+                  <label>{t("billing.billingInfo.companyName")}</label>
                   <input
                     type="text"
                     defaultValue={billingInfo?.companyName}
-                    placeholder="Mi Empresa S.L."
+                    placeholder="My Company Ltd."
                   />
                 </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>NIF/VAT</label>
+                  <label>{t("billing.billingInfo.vatNumber")}</label>
                   <input
                     type="text"
                     defaultValue={billingInfo?.vatNumber}
@@ -316,28 +318,28 @@ export function Billing() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>País</label>
+                  <label>{t("billing.billingInfo.country")}</label>
                   <select defaultValue={billingInfo?.country || "ES"}>
-                    <option value="ES">España</option>
-                    <option value="PT">Portugal</option>
-                    <option value="FR">Francia</option>
-                    <option value="DE">Alemania</option>
-                    <option value="IT">Italia</option>
-                    <option value="NL">Países Bajos</option>
+                    <option value="ES">{t("billing.countries.ES")}</option>
+                    <option value="PT">{t("billing.countries.PT")}</option>
+                    <option value="FR">{t("billing.countries.FR")}</option>
+                    <option value="DE">{t("billing.countries.DE")}</option>
+                    <option value="IT">{t("billing.countries.IT")}</option>
+                    <option value="NL">{t("billing.countries.NL")}</option>
                   </select>
                 </div>
               </div>
               <div className="form-group">
-                <label>Dirección</label>
+                <label>{t("billing.billingInfo.address")}</label>
                 <input
                   type="text"
                   defaultValue={billingInfo?.addressLine1}
-                  placeholder="Calle Principal 123"
+                  placeholder="123 Main Street"
                 />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Ciudad</label>
+                  <label>{t("billing.billingInfo.city")}</label>
                   <input
                     type="text"
                     defaultValue={billingInfo?.city}
@@ -345,7 +347,7 @@ export function Billing() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Código Postal</label>
+                  <label>{t("billing.billingInfo.postalCode")}</label>
                   <input
                     type="text"
                     defaultValue={billingInfo?.postalCode}
@@ -354,7 +356,7 @@ export function Billing() {
                 </div>
               </div>
               <button type="submit" className="btn btn-primary">
-                Guardar Cambios
+                {t("billing.billingInfo.saveChanges")}
               </button>
             </form>
           </div>

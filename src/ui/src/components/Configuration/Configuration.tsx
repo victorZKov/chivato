@@ -1,52 +1,29 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
+import { configApi } from "../../services/api";
+import type {
+  AzureConnection,
+  AdoConnection,
+  AiConnection,
+  EmailRecipient,
+  TimerConfig,
+  CreateAzureConnectionInput,
+  CreateAdoConnectionInput,
+  CreateAiConnectionInput,
+  CreateEmailRecipientInput,
+} from "../../services/api";
 import "./Configuration.css";
 
 type TabType = "connections" | "timer" | "recipients" | "ai";
 
-interface AzureConnection {
-  id: string;
-  name: string;
-  tenantId: string;
-  clientId: string;
-  status: "active" | "expiring" | "expired";
-  expiresAt?: string;
-}
-
-interface AdoConnection {
-  id: string;
-  name: string;
-  organizationUrl: string;
-  authType: "PAT" | "OAuth";
-  status: "active" | "expiring" | "expired";
-  expiresAt?: string;
-}
-
-interface AiConnection {
-  id: string;
-  name: string;
-  endpoint: string;
-  deploymentName: string;
-  status: "active" | "inactive";
-}
-
-interface EmailRecipient {
-  id: string;
-  email: string;
-  notifyOn: "always" | "drift_only" | "weekly";
-  isActive: boolean;
-}
-
-interface TimerConfig {
-  intervalHours: number;
-  isEnabled: boolean;
-  nextRunAt?: string;
-}
-
 export function Configuration() {
+  const { t } = useTranslation();
   const { isAdmin } = useRoles();
   const [activeTab, setActiveTab] = useState<TabType>("connections");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Data state
   const [azureConnections, setAzureConnections] = useState<AzureConnection[]>([]);
@@ -67,37 +44,148 @@ export function Configuration() {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // In production, these would be API calls
-      setAzureConnections(mockAzureConnections);
-      setAdoConnections(mockAdoConnections);
-      setAiConnection(mockAiConnection);
-      setEmailRecipients(mockEmailRecipients);
-      setTimerConfig(mockTimerConfig);
+      const [timerData, azureData, adoData, recipientsData, aiData] = await Promise.all([
+        configApi.getTimerConfig(),
+        configApi.getAzureConnections(),
+        configApi.getAdoConnections(),
+        configApi.getEmailRecipients(),
+        configApi.getAiConnection(),
+      ]);
+      setTimerConfig(timerData);
+      setAzureConnections(azureData);
+      setAdoConnections(adoData);
+      setEmailRecipients(recipientsData);
+      setAiConnection(aiData);
+    } catch (err) {
+      console.error("Error loading configuration:", err);
+      setError(err instanceof Error ? err.message : "Failed to load configuration");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveAzureConnection = async (data: Record<string, string>) => {
+    setSaving(true);
+    try {
+      const input: CreateAzureConnectionInput = {
+        name: data.name,
+        tenantId: data.tenantId,
+        clientId: data.clientId,
+        clientSecret: data.clientSecret,
+      };
+      await configApi.createAzureConnection(input);
+      setShowAzureModal(false);
+      loadData();
+    } catch (err) {
+      console.error("Error saving Azure connection:", err);
+      alert(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAdoConnection = async (data: Record<string, string>) => {
+    setSaving(true);
+    try {
+      const input: CreateAdoConnectionInput = {
+        name: data.name,
+        organizationUrl: data.organizationUrl,
+        pat: data.pat,
+      };
+      await configApi.createAdoConnection(input);
+      setShowAdoModal(false);
+      loadData();
+    } catch (err) {
+      console.error("Error saving ADO connection:", err);
+      alert(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAiConnection = async (data: Record<string, string>) => {
+    setSaving(true);
+    try {
+      const input: CreateAiConnectionInput = {
+        name: data.name,
+        endpoint: data.endpoint,
+        deploymentName: data.deploymentName,
+        apiKey: data.apiKey,
+      };
+      await configApi.saveAiConnection(input);
+      setShowAiModal(false);
+      loadData();
+    } catch (err) {
+      console.error("Error saving AI connection:", err);
+      alert(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveRecipient = async (data: Record<string, string>) => {
+    setSaving(true);
+    try {
+      const input: CreateEmailRecipientInput = {
+        email: data.email,
+        notifyOn: data.notifyOn as "always" | "drift_only" | "weekly",
+      };
+      await configApi.createEmailRecipient(input);
+      setShowRecipientModal(false);
+      loadData();
+    } catch (err) {
+      console.error("Error saving recipient:", err);
+      alert(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteAzureConnection = async (id: string) => {
-    if (!window.confirm("¿Eliminar esta conexión Azure?")) return;
-    setAzureConnections((prev) => prev.filter((c) => c.id !== id));
+    if (!window.confirm(t("configuration.confirmDelete.azure"))) return;
+    try {
+      await configApi.deleteAzureConnection(id);
+      setAzureConnections((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error("Error deleting Azure connection:", err);
+      alert(t("errors.deleteFailed"));
+    }
   };
 
   const handleDeleteAdoConnection = async (id: string) => {
-    if (!window.confirm("¿Eliminar esta conexión ADO?")) return;
-    setAdoConnections((prev) => prev.filter((c) => c.id !== id));
+    if (!window.confirm(t("configuration.confirmDelete.ado"))) return;
+    try {
+      await configApi.deleteAdoConnection(id);
+      setAdoConnections((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error("Error deleting ADO connection:", err);
+      alert(t("errors.deleteFailed"));
+    }
   };
 
   const handleDeleteRecipient = async (id: string) => {
-    if (!window.confirm("¿Eliminar este destinatario?")) return;
-    setEmailRecipients((prev) => prev.filter((r) => r.id !== id));
+    if (!window.confirm(t("configuration.confirmDelete.recipient"))) return;
+    try {
+      await configApi.deleteEmailRecipient(id);
+      setEmailRecipients((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      console.error("Error deleting recipient:", err);
+      alert(t("errors.deleteFailed"));
+    }
   };
 
-  const handleToggleRecipient = async (id: string) => {
-    setEmailRecipients((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r))
-    );
+  const handleToggleRecipient = async (id: string, currentActive: boolean) => {
+    try {
+      await configApi.updateEmailRecipient(id, { notifyOn: currentActive ? "drift_only" : "always" });
+      setEmailRecipients((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r))
+      );
+    } catch (err) {
+      console.error("Error toggling recipient:", err);
+      alert(t("errors.saveFailed"));
+    }
   };
 
   const handleTimerChange = (field: keyof TimerConfig, value: number | boolean) => {
@@ -105,19 +193,76 @@ export function Configuration() {
   };
 
   const handleSaveTimer = async () => {
-    console.log("Saving timer config:", timerConfig);
-    alert("Configuración de timer guardada");
+    setSaving(true);
+    try {
+      await configApi.updateTimerConfig(timerConfig);
+      alert(t("configuration.timer.saved"));
+    } catch (err) {
+      console.error("Error saving timer:", err);
+      alert(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestAzureConnection = async (id: string) => {
+    try {
+      const result = await configApi.testAzureConnection(id);
+      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+    } catch (err) {
+      alert(t("configuration.connections.connectionFailed"));
+    }
+  };
+
+  const handleTestAdoConnection = async (id: string) => {
+    try {
+      const result = await configApi.testAdoConnection(id);
+      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+    } catch (err) {
+      alert(t("configuration.connections.connectionFailed"));
+    }
+  };
+
+  const handleTestAiConnection = async () => {
+    try {
+      const result = await configApi.testAiConnection();
+      alert(result.success ? t("configuration.connections.connectionSuccess") : t("configuration.connections.connectionFailed"));
+    } catch (err) {
+      alert(t("configuration.connections.connectionFailed"));
+    }
+  };
+
+  const getStatusText = (status: "active" | "expiring" | "expired", expiresAt?: string) => {
+    switch (status) {
+      case "active":
+        return `✓ ${t("configuration.status.active")}`;
+      case "expiring":
+        return `⚠ ${t("configuration.status.expiring", { date: expiresAt })}`;
+      case "expired":
+        return `✕ ${t("configuration.status.expired")}`;
+    }
+  };
+
+  const getNotifyOnText = (notifyOn: "always" | "drift_only" | "weekly") => {
+    switch (notifyOn) {
+      case "always":
+        return t("configuration.recipients.notifyOn.always");
+      case "drift_only":
+        return t("configuration.recipients.notifyOn.driftOnly");
+      case "weekly":
+        return t("configuration.recipients.notifyOn.weekly");
+    }
   };
 
   if (loading) {
-    return <div className="config-loading">Cargando...</div>;
+    return <div className="config-loading">{t("common.loading")}</div>;
   }
 
   if (!isAdmin) {
     return (
       <div className="config-restricted">
-        <h2>Acceso Restringido</h2>
-        <p>Necesitas el rol de Administrador para acceder a esta sección.</p>
+        <h2>{t("configuration.restrictedAccess")}</h2>
+        <p>{t("configuration.restrictedMessage")}</p>
       </div>
     );
   }
@@ -125,34 +270,43 @@ export function Configuration() {
   return (
     <div className="configuration">
       <div className="config-header">
-        <h1>Configuración</h1>
-        <p className="text-muted">Gestiona conexiones, timer y notificaciones</p>
+        <h1>{t("configuration.title")}</h1>
+        <p className="text-muted">{t("configuration.subtitle")}</p>
       </div>
+
+      {error && (
+        <div className="error-banner">
+          <span>{error}</span>
+          <button className="btn btn-sm" onClick={loadData}>
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
 
       <div className="config-tabs">
         <button
           className={`tab-btn ${activeTab === "connections" ? "active" : ""}`}
           onClick={() => setActiveTab("connections")}
         >
-          Conexiones
+          {t("configuration.tabs.connections")}
         </button>
         <button
           className={`tab-btn ${activeTab === "timer" ? "active" : ""}`}
           onClick={() => setActiveTab("timer")}
         >
-          Timer
+          {t("configuration.tabs.timer")}
         </button>
         <button
           className={`tab-btn ${activeTab === "recipients" ? "active" : ""}`}
           onClick={() => setActiveTab("recipients")}
         >
-          Destinatarios
+          {t("configuration.tabs.recipients")}
         </button>
         <button
           className={`tab-btn ${activeTab === "ai" ? "active" : ""}`}
           onClick={() => setActiveTab("ai")}
         >
-          Azure AI
+          {t("configuration.tabs.ai")}
         </button>
       </div>
 
@@ -162,37 +316,40 @@ export function Configuration() {
             {/* Azure Connections */}
             <section className="connection-section">
               <div className="section-header">
-                <h2>Conexiones Azure</h2>
+                <h2>{t("configuration.connections.azure")}</h2>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowAzureModal(true)}>
-                  + Añadir
+                  + {t("common.add")}
                 </button>
               </div>
 
               {azureConnections.length === 0 ? (
-                <p className="text-muted">No hay conexiones Azure configuradas</p>
+                <p className="text-muted">{t("configuration.connections.noAzure")}</p>
               ) : (
                 <div className="connection-list">
                   {azureConnections.map((conn) => (
                     <div key={conn.id} className="connection-card">
                       <div className="connection-info">
                         <span className="connection-name">{conn.name}</span>
-                        <span className="connection-detail">Tenant: {conn.tenantId}</span>
-                        <span className="connection-detail">Client: {conn.clientId}</span>
+                        <span className="connection-detail">{t("configuration.connections.tenant")}: {conn.tenantId}</span>
+                        <span className="connection-detail">{t("configuration.connections.client")}: {conn.clientId}</span>
                       </div>
                       <div className="connection-status">
                         <span className={`status-badge status-${conn.status}`}>
-                          {conn.status === "active" && "✓ Activo"}
-                          {conn.status === "expiring" && `⚠ Expira ${conn.expiresAt}`}
-                          {conn.status === "expired" && "✕ Expirado"}
+                          {getStatusText(conn.status, conn.expiresAt)}
                         </span>
                       </div>
                       <div className="connection-actions">
-                        <button className="btn btn-ghost btn-sm">Editar</button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleTestAzureConnection(conn.id)}
+                        >
+                          {t("configuration.connections.testConnection")}
+                        </button>
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => handleDeleteAzureConnection(conn.id)}
                         >
-                          Eliminar
+                          {t("common.delete")}
                         </button>
                       </div>
                     </div>
@@ -204,14 +361,14 @@ export function Configuration() {
             {/* ADO Connections */}
             <section className="connection-section">
               <div className="section-header">
-                <h2>Conexiones Azure DevOps</h2>
+                <h2>{t("configuration.connections.ado")}</h2>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowAdoModal(true)}>
-                  + Añadir
+                  + {t("common.add")}
                 </button>
               </div>
 
               {adoConnections.length === 0 ? (
-                <p className="text-muted">No hay conexiones ADO configuradas</p>
+                <p className="text-muted">{t("configuration.connections.noAdo")}</p>
               ) : (
                 <div className="connection-list">
                   {adoConnections.map((conn) => (
@@ -219,22 +376,25 @@ export function Configuration() {
                       <div className="connection-info">
                         <span className="connection-name">{conn.name}</span>
                         <span className="connection-detail">{conn.organizationUrl}</span>
-                        <span className="connection-detail">Auth: {conn.authType}</span>
+                        <span className="connection-detail">{t("configuration.connections.auth")}: {conn.authType}</span>
                       </div>
                       <div className="connection-status">
                         <span className={`status-badge status-${conn.status}`}>
-                          {conn.status === "active" && "✓ Activo"}
-                          {conn.status === "expiring" && `⚠ Expira ${conn.expiresAt}`}
-                          {conn.status === "expired" && "✕ Expirado"}
+                          {getStatusText(conn.status, conn.expiresAt)}
                         </span>
                       </div>
                       <div className="connection-actions">
-                        <button className="btn btn-ghost btn-sm">Editar</button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleTestAdoConnection(conn.id)}
+                        >
+                          {t("configuration.connections.testConnection")}
+                        </button>
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => handleDeleteAdoConnection(conn.id)}
                         >
-                          Eliminar
+                          {t("common.delete")}
                         </button>
                       </div>
                     </div>
@@ -248,14 +408,14 @@ export function Configuration() {
         {activeTab === "timer" && (
           <div className="timer-tab">
             <div className="card">
-              <h2>Configuración del Timer</h2>
+              <h2>{t("configuration.timer.title")}</h2>
               <p className="text-muted">
-                Configura la frecuencia con la que se ejecuta el análisis de drift.
+                {t("configuration.timer.description")}
               </p>
 
               <div className="timer-form">
                 <div className="form-group">
-                  <label>Estado</label>
+                  <label>{t("configuration.timer.status")}</label>
                   <div className="toggle-container">
                     <button
                       className={`toggle-btn ${timerConfig.isEnabled ? "active" : ""}`}
@@ -263,12 +423,12 @@ export function Configuration() {
                     >
                       <span className="toggle-slider" />
                     </button>
-                    <span>{timerConfig.isEnabled ? "Activo" : "Pausado"}</span>
+                    <span>{timerConfig.isEnabled ? t("common.active") : t("configuration.timer.paused")}</span>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Intervalo de ejecución</label>
+                  <label>{t("configuration.timer.interval")}</label>
                   <div className="interval-selector">
                     {[1, 6, 12, 24, 48, 168].map((hours) => (
                       <button
@@ -281,19 +441,19 @@ export function Configuration() {
                     ))}
                   </div>
                   <p className="text-muted text-sm">
-                    El análisis se ejecutará cada {timerConfig.intervalHours} horas
+                    {t("configuration.timer.runEveryHours", { hours: timerConfig.intervalHours })}
                   </p>
                 </div>
 
                 {timerConfig.nextRunAt && (
                   <div className="next-run">
-                    <span className="text-muted">Próxima ejecución:</span>
+                    <span className="text-muted">{t("configuration.timer.nextRun")}</span>
                     <span>{timerConfig.nextRunAt}</span>
                   </div>
                 )}
 
                 <button className="btn btn-primary" onClick={handleSaveTimer}>
-                  Guardar Cambios
+                  {t("configuration.timer.saveChanges")}
                 </button>
               </div>
             </div>
@@ -303,14 +463,14 @@ export function Configuration() {
         {activeTab === "recipients" && (
           <div className="recipients-tab">
             <div className="section-header">
-              <h2>Destinatarios de Email</h2>
+              <h2>{t("configuration.recipients.title")}</h2>
               <button className="btn btn-primary btn-sm" onClick={() => setShowRecipientModal(true)}>
-                + Añadir
+                + {t("common.add")}
               </button>
             </div>
 
             {emailRecipients.length === 0 ? (
-              <p className="text-muted">No hay destinatarios configurados</p>
+              <p className="text-muted">{t("configuration.recipients.noRecipients")}</p>
             ) : (
               <div className="recipients-list">
                 {emailRecipients.map((recipient) => (
@@ -318,23 +478,21 @@ export function Configuration() {
                     <div className="recipient-info">
                       <span className="recipient-email">{recipient.email}</span>
                       <span className="recipient-setting">
-                        {recipient.notifyOn === "always" && "Todas las notificaciones"}
-                        {recipient.notifyOn === "drift_only" && "Solo cuando hay drift"}
-                        {recipient.notifyOn === "weekly" && "Resumen semanal"}
+                        {getNotifyOnText(recipient.notifyOn)}
                       </span>
                     </div>
                     <div className="recipient-actions">
                       <button
                         className="btn btn-ghost btn-sm"
-                        onClick={() => handleToggleRecipient(recipient.id)}
+                        onClick={() => handleToggleRecipient(recipient.id, recipient.isActive)}
                       >
-                        {recipient.isActive ? "Desactivar" : "Activar"}
+                        {recipient.isActive ? t("common.disabled") : t("common.enabled")}
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => handleDeleteRecipient(recipient.id)}
                       >
-                        Eliminar
+                        {t("common.delete")}
                       </button>
                     </div>
                   </div>
@@ -347,10 +505,10 @@ export function Configuration() {
         {activeTab === "ai" && (
           <div className="ai-tab">
             <div className="section-header">
-              <h2>Configuración Azure AI</h2>
+              <h2>{t("configuration.ai.title")}</h2>
               {!aiConnection && (
                 <button className="btn btn-primary btn-sm" onClick={() => setShowAiModal(true)}>
-                  Configurar
+                  {t("configuration.ai.configure")}
                 </button>
               )}
             </div>
@@ -361,38 +519,39 @@ export function Configuration() {
                   <h3>{aiConnection.name}</h3>
                   <div className="ai-details">
                     <div className="detail-row">
-                      <span className="label">Endpoint:</span>
+                      <span className="label">{t("configuration.ai.endpoint")}:</span>
                       <span className="value">{aiConnection.endpoint}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="label">Deployment:</span>
+                      <span className="label">{t("configuration.ai.deployment")}:</span>
                       <span className="value">{aiConnection.deploymentName}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="label">Estado:</span>
+                      <span className="label">{t("common.status")}:</span>
                       <span className={`status-badge status-${aiConnection.status}`}>
-                        {aiConnection.status === "active" ? "✓ Activo" : "✕ Inactivo"}
+                        {aiConnection.status === "active" ? `✓ ${t("common.active")}` : `✕ ${t("common.inactive")}`}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div className="ai-actions">
                   <button className="btn btn-outline" onClick={() => setShowAiModal(true)}>
-                    Editar
+                    {t("common.edit")}
                   </button>
-                  <button className="btn btn-ghost">Probar conexión</button>
+                  <button className="btn btn-ghost" onClick={handleTestAiConnection}>
+                    {t("configuration.ai.testConnection")}
+                  </button>
                 </div>
               </div>
             ) : (
               <div className="ai-empty card">
                 <span className="empty-icon">🤖</span>
-                <h3>Azure AI no configurado</h3>
+                <h3>{t("configuration.ai.notConfigured")}</h3>
                 <p className="text-muted">
-                  Configura Azure AI Foundry para habilitar el análisis inteligente de drift
-                  con GPT.
+                  {t("configuration.ai.description")}
                 </p>
                 <button className="btn btn-primary" onClick={() => setShowAiModal(true)}>
-                  Configurar Azure AI
+                  {t("configuration.ai.configureAzureAi")}
                 </button>
               </div>
             )}
@@ -400,73 +559,69 @@ export function Configuration() {
         )}
       </div>
 
-      {/* Modals would go here - simplified for brevity */}
+      {/* Modals */}
       {showAzureModal && (
         <ConnectionModal
-          title="Nueva Conexión Azure"
+          title={t("configuration.modal.newAzure")}
           onClose={() => setShowAzureModal(false)}
-          onSave={(data) => {
-            console.log("Save Azure connection:", data);
-            setShowAzureModal(false);
-          }}
+          onSave={handleSaveAzureConnection}
+          saving={saving}
           fields={[
-            { name: "name", label: "Nombre", type: "text", required: true },
-            { name: "tenantId", label: "Tenant ID", type: "text", required: true },
-            { name: "clientId", label: "Client ID", type: "text", required: true },
-            { name: "clientSecret", label: "Client Secret", type: "password", required: true },
+            { name: "name", label: t("configuration.fields.name"), type: "text", required: true },
+            { name: "tenantId", label: t("configuration.fields.tenantId"), type: "text", required: true },
+            { name: "clientId", label: t("configuration.fields.clientId"), type: "text", required: true },
+            { name: "clientSecret", label: t("configuration.fields.clientSecret"), type: "password", required: true },
           ]}
+          t={t}
         />
       )}
 
       {showAdoModal && (
         <ConnectionModal
-          title="Nueva Conexión Azure DevOps"
+          title={t("configuration.modal.newAdo")}
           onClose={() => setShowAdoModal(false)}
-          onSave={(data) => {
-            console.log("Save ADO connection:", data);
-            setShowAdoModal(false);
-          }}
+          onSave={handleSaveAdoConnection}
+          saving={saving}
           fields={[
-            { name: "name", label: "Nombre", type: "text", required: true },
-            { name: "organizationUrl", label: "URL de Organización", type: "text", required: true, placeholder: "https://dev.azure.com/myorg" },
-            { name: "pat", label: "Personal Access Token", type: "password", required: true },
+            { name: "name", label: t("configuration.fields.name"), type: "text", required: true },
+            { name: "organizationUrl", label: t("configuration.fields.organizationUrl"), type: "text", required: true, placeholder: "https://dev.azure.com/myorg" },
+            { name: "pat", label: t("configuration.fields.pat"), type: "password", required: true },
           ]}
+          t={t}
         />
       )}
 
       {showRecipientModal && (
         <ConnectionModal
-          title="Nuevo Destinatario"
+          title={t("configuration.modal.newRecipient")}
           onClose={() => setShowRecipientModal(false)}
-          onSave={(data) => {
-            console.log("Save recipient:", data);
-            setShowRecipientModal(false);
-          }}
+          onSave={handleSaveRecipient}
+          saving={saving}
           fields={[
             { name: "email", label: "Email", type: "email", required: true },
-            { name: "notifyOn", label: "Notificar", type: "select", required: true, options: [
-              { value: "always", label: "Todas las notificaciones" },
-              { value: "drift_only", label: "Solo cuando hay drift" },
-              { value: "weekly", label: "Resumen semanal" },
+            { name: "notifyOn", label: t("configuration.recipients.notifyOn.label"), type: "select", required: true, options: [
+              { value: "always", label: t("configuration.recipients.notifyOn.always") },
+              { value: "drift_only", label: t("configuration.recipients.notifyOn.driftOnly") },
+              { value: "weekly", label: t("configuration.recipients.notifyOn.weekly") },
             ]},
           ]}
+          t={t}
         />
       )}
 
       {showAiModal && (
         <ConnectionModal
-          title="Configurar Azure AI"
+          title={t("configuration.modal.configureAi")}
           onClose={() => setShowAiModal(false)}
-          onSave={(data) => {
-            console.log("Save AI connection:", data);
-            setShowAiModal(false);
-          }}
+          onSave={handleSaveAiConnection}
+          saving={saving}
           fields={[
-            { name: "name", label: "Nombre", type: "text", required: true },
-            { name: "endpoint", label: "Endpoint", type: "text", required: true, placeholder: "https://myai.openai.azure.com" },
-            { name: "deploymentName", label: "Deployment Name", type: "text", required: true, placeholder: "gpt-5" },
-            { name: "apiKey", label: "API Key", type: "password", required: true },
+            { name: "name", label: t("configuration.fields.name"), type: "text", required: true },
+            { name: "endpoint", label: t("configuration.ai.endpoint"), type: "text", required: true, placeholder: "https://myai.openai.azure.com" },
+            { name: "deploymentName", label: t("configuration.fields.deploymentName"), type: "text", required: true, placeholder: "gpt-5" },
+            { name: "apiKey", label: t("configuration.ai.apiKey"), type: "password", required: true },
           ]}
+          t={t}
         />
       )}
     </div>
@@ -488,9 +643,11 @@ interface ConnectionModalProps {
   onClose: () => void;
   onSave: (data: Record<string, string>) => void;
   fields: FieldConfig[];
+  t: (key: string) => string;
+  saving?: boolean;
 }
 
-function ConnectionModal({ title, onClose, onSave, fields }: ConnectionModalProps) {
+function ConnectionModal({ title, onClose, onSave, fields, t, saving }: ConnectionModalProps) {
   const [formData, setFormData] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -503,7 +660,7 @@ function ConnectionModal({ title, onClose, onSave, fields }: ConnectionModalProp
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="btn btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost" onClick={onClose} disabled={saving}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -515,8 +672,9 @@ function ConnectionModal({ title, onClose, onSave, fields }: ConnectionModalProp
                     value={formData[field.name] || ""}
                     onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                     required={field.required}
+                    disabled={saving}
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t("common.select")}...</option>
                     {field.options?.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
@@ -528,66 +686,20 @@ function ConnectionModal({ title, onClose, onSave, fields }: ConnectionModalProp
                     onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                     placeholder={field.placeholder}
                     required={field.required}
+                    disabled={saving}
                   />
                 )}
               </div>
             ))}
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary">Guardar</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>{t("common.cancel")}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? t("common.loading") : t("common.save")}
+            </button>
           </div>
         </form>
       </div>
     </div>
   );
 }
-
-// Mock data
-const mockAzureConnections: AzureConnection[] = [
-  {
-    id: "1",
-    name: "Producción",
-    tenantId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-    clientId: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy",
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Staging",
-    tenantId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-    clientId: "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz",
-    status: "expiring",
-    expiresAt: "en 12 días",
-  },
-];
-
-const mockAdoConnections: AdoConnection[] = [
-  {
-    id: "1",
-    name: "MyOrg Principal",
-    organizationUrl: "https://dev.azure.com/myorg",
-    authType: "PAT",
-    status: "active",
-  },
-];
-
-const mockAiConnection: AiConnection = {
-  id: "1",
-  name: "Azure OpenAI - GPT-5",
-  endpoint: "https://chivato-ai.openai.azure.com",
-  deploymentName: "gpt-5",
-  status: "active",
-};
-
-const mockEmailRecipients: EmailRecipient[] = [
-  { id: "1", email: "admin@empresa.com", notifyOn: "always", isActive: true },
-  { id: "2", email: "devops@empresa.com", notifyOn: "drift_only", isActive: true },
-  { id: "3", email: "manager@empresa.com", notifyOn: "weekly", isActive: false },
-];
-
-const mockTimerConfig: TimerConfig = {
-  intervalHours: 24,
-  isEnabled: true,
-  nextRunAt: "Mañana a las 08:00",
-};

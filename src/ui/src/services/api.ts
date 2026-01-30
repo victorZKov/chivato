@@ -118,14 +118,23 @@ export const pipelinesApi = {
     apiRequest<{ id: string; name: string }[]>(`/ado/${connectionId}/projects/${encodeURIComponent(project)}/pipelines`),
 };
 
+// Paginated response type
+interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 // Drift API
 export const driftApi = {
-  getDriftRecords: (params?: { from?: string; to?: string; severity?: string }) => {
+  getDriftRecords: async (params?: { from?: string; to?: string; severity?: string }): Promise<DriftRecord[]> => {
     const query = new URLSearchParams();
     if (params?.from) query.set("from", params.from);
     if (params?.to) query.set("to", params.to);
     if (params?.severity) query.set("severity", params.severity);
-    return apiRequest<DriftRecord[]>(`/drift?${query}`);
+    const result = await apiRequest<PagedResult<DriftRecord>>(`/drift?${query}`);
+    return result.items;
   },
   getDriftStats: () => apiRequest<DriftStats>("/drift/stats"),
   triggerAnalysis: () =>
