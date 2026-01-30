@@ -12,7 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.1.0",
     "@azure/msal-react": "^5.0.3",
-    "@microsoft/signalr": "^8.0.0",
+    "@microsoft/signalr": "^10.0.0",
     "i18next": "^25.8.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "react": "^19.2.0",
