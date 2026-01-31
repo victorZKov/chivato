@@ -1,231 +1,143 @@
 # Chivato - Terraform Infrastructure
 
-Este directorio contiene la configuración de Terraform para desplegar toda la infraestructura de Azure necesaria para Chivato.
+This directory contains the Terraform configuration for deploying Chivato infrastructure to Azure.
 
-## Recursos que se crean
+## Architecture
 
-### App Registration (Entra ID)
-- App Registration con configuración SPA (PKCE)
-- App Roles: `Chivato.Admin`, `Chivato.User`
-- API Scope: `access_as_user`
-- Service Principal
-- Asignación de roles a usuarios
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Azure Container Apps                         │
+│  ┌─────────────────┐              ┌─────────────────┐           │
+│  │   API Container │◄────────────►│ Worker Container│           │
+│  │   (ASP.NET)     │              │  (.NET Worker)  │           │
+│  └────────┬────────┘              └────────┬────────┘           │
+│           │                                │                     │
+└───────────┼────────────────────────────────┼─────────────────────┘
+            │                                │
+    ┌───────┴───────┐                ┌───────┴───────┐
+    │  Azure SignalR │                │ Service Bus   │
+    │  (Real-time)   │                │ (Queue)       │
+    └───────────────┘                └───────────────┘
+            │                                │
+    ┌───────┴────────────────────────────────┴───────┐
+    │                                                 │
+    │  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
+    │  │ Key Vault│  │ Storage  │  │ App Insights │ │
+    │  │ (Secrets)│  │ (Tables) │  │ (Monitoring) │ │
+    │  └──────────┘  └──────────┘  └──────────────┘ │
+    │                                                 │
+    └─────────────────────────────────────────────────┘
+```
 
-### Infraestructura Azure
-- Resource Group
-- Storage Account con Tables
-- Key Vault
-- Application Insights
-- Function App (opcional)
-- Communication Services (opcional)
-- Azure OpenAI (opcional)
+## Prerequisites
 
-## Prerequisitos
+- [Terraform](https://www.terraform.io/downloads) >= 1.5.0
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) authenticated
+- Access to the Azure subscription
 
-1. **Azure CLI** instalado y autenticado:
+## Quick Start
+
+1. **Login to Azure**
    ```bash
    az login
-   az account set --subscription "<subscription-id>"
+   az account set --subscription "ec654428-81d7-4dcd-8ba8-5b8f632bec29"
    ```
 
-2. **Terraform** >= 1.5.0 instalado:
+2. **Initialize Terraform**
    ```bash
-   brew install terraform  # macOS
+   make init
    ```
 
-3. **Permisos necesarios** en Azure:
-   - `Application Administrator` o `Global Administrator` en Entra ID
-   - `Contributor` en la subscription de Azure
+3. **Plan changes**
+   ```bash
+   make plan ENV=dev
+   ```
 
-## Uso
+4. **Apply changes**
+   ```bash
+   make apply ENV=dev
+   ```
 
-### 1. Obtener tu Object ID (para asignarte como Admin)
+## Environment Configuration
 
-```bash
-# Tu Object ID
-az ad signed-in-user show --query id -o tsv
+Environment-specific variables are in `environments/`:
 
-# Object ID de otro usuario
-az ad user show --id "user@domain.com" --query id -o tsv
-```
+- `dev.tfvars` - Development environment
+- `staging.tfvars` - Staging environment (create when needed)
+- `prod.tfvars` - Production environment (create when needed)
 
-### 2. Configurar variables
+## Importing Existing Resources
 
-Copia el archivo de ejemplo y configura tus valores:
+The `import.tf` file contains import blocks for existing Azure resources. When running `terraform plan`, Terraform will automatically import these resources into its state.
 
-```bash
-cd src/devops/terraform
+Existing resources in `rg-chivato-dev`:
+- Resource Group: `rg-chivato-dev`
+- Storage Account: `stchivatodev`
+- Key Vault: `kv-chivato-dev`
+- Application Insights: `appi-chivato-dev`
 
-# Para desarrollo
-cp environments/dev.tfvars my-dev.tfvars
-```
+## Backend State
 
-Edita `my-dev.tfvars` con tus valores:
+Terraform state is stored in Azure Storage:
 
-```hcl
-tenant_id       = "tu-tenant-id"
-subscription_id = "tu-subscription-id"
+- **Storage Account**: `kodepstr`
+- **Container**: `tfstate`
+- **State File**: `chivato-dev.tfstate`
 
-admin_user_ids = [
-  "tu-object-id"
-]
-```
+## Resources Created
 
-### 3. Inicializar Terraform
+| Resource | Name Pattern | Description |
+|----------|--------------|-------------|
+| Resource Group | `rg-chivato-{env}` | Contains all resources |
+| Storage Account | `stchivato{env}` | Table storage for data |
+| Key Vault | `kv-chivato-{env}` | Secrets management |
+| App Insights | `appi-chivato-{env}` | Application monitoring |
+| Container Registry | `acrchivato{env}` | Docker images |
+| Container Apps Env | `cae-chivato-{env}` | Container runtime |
+| Container App API | `ca-chivato-{env}-api` | API container |
+| Container App Worker | `ca-chivato-{env}-worker` | Background worker |
+| Service Bus | `sb-chivato-{env}` | Message queue |
+| SignalR | `sigr-chivato-{env}` | Real-time notifications |
 
-```bash
-terraform init
-```
-
-### 4. Ver plan de cambios
-
-```bash
-terraform plan -var-file="my-dev.tfvars"
-```
-
-### 5. Aplicar cambios
-
-```bash
-terraform apply -var-file="my-dev.tfvars"
-```
-
-### 6. Obtener outputs
+## Makefile Commands
 
 ```bash
-# Ver todos los outputs
-terraform output
-
-# Obtener config para frontend .env
-terraform output -raw frontend_env_config > ../../ui/.env
-
-# Obtener config para backend (cuidado: contiene secretos)
-terraform output -raw backend_local_settings > ../../functions/local.settings.json
+make help         # Show all commands
+make init         # Initialize Terraform
+make plan         # Show planned changes
+make apply        # Apply changes
+make destroy      # Destroy resources (DANGER!)
+make fmt          # Format Terraform files
+make validate     # Validate configuration
+make output       # Show outputs
+make state-list   # List resources in state
 ```
 
-## Despliegue por Fases
+## Outputs
 
-### Fase 1: Solo App Registration y Storage (desarrollo inicial)
-
-```hcl
-# my-dev.tfvars
-create_function_app          = false
-create_communication_service = false
-create_openai                = false
-```
+After applying, you can get important values:
 
 ```bash
-terraform apply -var-file="my-dev.tfvars"
+terraform output api_url           # API endpoint URL
+terraform output acr_login_server  # Container Registry URL
 ```
 
-Esto crea:
-- App Registration con roles
-- Storage Account con tables
-- Key Vault
-- Application Insights
+## CI/CD Pipeline
 
-### Fase 2: Añadir Function App
-
-```hcl
-create_function_app = true
-function_app_sku    = "Y1"  # Consumption
-```
-
-### Fase 3: Añadir servicios adicionales
-
-```hcl
-create_communication_service = true
-create_openai                = true
-```
-
-## Asignar usuarios a roles
-
-### Desde Terraform (recomendado)
-
-Añade los Object IDs en el tfvars:
-
-```hcl
-admin_user_ids = [
-  "11111111-1111-1111-1111-111111111111",
-  "22222222-2222-2222-2222-222222222222"
-]
-
-user_user_ids = [
-  "33333333-3333-3333-3333-333333333333"
-]
-```
-
-```bash
-terraform apply -var-file="my-dev.tfvars"
-```
-
-### Desde Azure CLI
-
-```bash
-# Obtener IDs necesarios
-APP_ID=$(terraform output -raw app_registration_client_id)
-SP_ID=$(terraform output -raw service_principal_id)
-USER_ID="object-id-del-usuario"
-
-# Obtener ID del rol (Admin o User)
-ADMIN_ROLE_ID=$(az ad sp show --id $APP_ID --query "appRoles[?value=='Chivato.Admin'].id" -o tsv)
-USER_ROLE_ID=$(az ad sp show --id $APP_ID --query "appRoles[?value=='Chivato.User'].id" -o tsv)
-
-# Asignar rol Admin
-az rest --method POST \
-  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$SP_ID/appRoleAssignedTo" \
-  --body "{\"principalId\": \"$USER_ID\", \"resourceId\": \"$SP_ID\", \"appRoleId\": \"$ADMIN_ROLE_ID\"}"
-```
-
-## Estructura de archivos
-
-```
-terraform/
-├── main.tf                     # Configuración principal
-├── variables.tf                # Definición de variables
-├── outputs.tf                  # Outputs
-├── modules/
-│   └── app-registration/       # Módulo de App Registration
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
-└── environments/
-    ├── dev.tfvars              # Variables para desarrollo
-    └── prod.tfvars             # Variables para producción
-```
+The infrastructure is deployed via Azure DevOps Pipeline. See `.azure-pipelines/terraform.yml`.
 
 ## Troubleshooting
 
-### Error: "Insufficient privileges"
-
-Necesitas permisos de `Application Administrator` en Entra ID:
-
+### "Backend configuration changed"
 ```bash
-# Verificar tus roles
-az role assignment list --assignee $(az ad signed-in-user show --query id -o tsv) --all
+terraform init -reconfigure
 ```
 
-### Error: "The subscription is not registered to use namespace 'Microsoft.CognitiveServices'"
-
-Registra el provider:
-
+### "Resource already exists"
+The import blocks in `import.tf` should handle this. If not:
 ```bash
-az provider register --namespace Microsoft.CognitiveServices
+terraform import azurerm_resource_group.main /subscriptions/.../resourceGroups/rg-chivato-dev
 ```
 
-### Error con OpenAI: "Model not available in this region"
-
-Cambia `openai_location` a una región con disponibilidad:
-- `swedencentral`
-- `eastus`
-- `eastus2`
-- `francecentral`
-
-## Limpieza
-
-Para eliminar todos los recursos:
-
-```bash
-terraform destroy -var-file="my-dev.tfvars"
-```
-
-**Nota**: En producción, Key Vault tiene soft-delete activado, por lo que la eliminación no es inmediata.
+### "Permission denied"
+Ensure you have Owner or Contributor role on the subscription.
