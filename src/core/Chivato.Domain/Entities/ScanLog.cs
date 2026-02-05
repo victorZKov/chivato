@@ -109,5 +109,6 @@ public enum ScanStatus
     Pending,
     Running,
     Success,
-    Failed
+    Failed,
+    CompletedWithErrors
 }

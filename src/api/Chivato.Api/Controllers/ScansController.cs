@@ -1,3 +1,4 @@
+using Chivato.Application.DTOs;
 using Chivato.Application.Queries.Scans;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +55,18 @@ public class ScansController : ControllerBase
         if (result == null)
             return NotFound();
 
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get drift records associated with a specific scan
+    /// </summary>
+    [HttpGet("{id}/drifts")]
+    [ProducesResponseType(typeof(IReadOnlyList<DriftRecordDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetScanDrifts(string id)
+    {
+        var query = new GetScanDriftsQuery(id);
+        var result = await _mediator.Send(query);
         return Ok(result);
     }
 

@@ -13,7 +13,10 @@ public interface IEmailService
     Task SendDriftReportAsync(
         IEnumerable<string> recipients,
         string pipelineName,
-        DriftAnalysisResult result,
+        IEnumerable<DriftRecordEntity> driftRecords,
+        string connectionString,
+        string fromEmail,
+        string? fromDisplayName = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

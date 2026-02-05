@@ -17,10 +17,11 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "rg-kovimatic-core"
+    resource_group_name  = "deployment-rg01"
     storage_account_name = "kodepstr"
     container_name       = "tfstate"
     key                  = "chivato-dev.tfstate"
+    subscription_id      = "c154078b-3905-4e0c-9c12-0c0dc933a2c4"
   }
 }
 
@@ -297,7 +298,7 @@ resource "azurerm_signalr_service" "main" {
 
   connectivity_logs_enabled = var.environment == "prod"
   messaging_logs_enabled    = var.environment == "prod"
-  service_mode              = "Default"
+  service_mode              = "Serverless"
 
   tags = local.common_tags
 }

@@ -15,10 +15,19 @@ public class Pipeline : BaseEntity
     public string TerraformPath { get; private set; } = string.Empty;
     public string SubscriptionId { get; private set; } = string.Empty;
     public string ResourceGroup { get; private set; } = string.Empty;
+    public string? RepositoryName { get; private set; }
+    public string PlanOnlyParameter { get; private set; } = "PLAN_ONLY";
     public PipelineStatus Status { get; private set; } = PipelineStatus.Active;
     public DateTimeOffset? LastScanAt { get; private set; }
+    public string? LastScanStatus { get; private set; }
+    public string? LastScanError { get; private set; }
     public int DriftCount { get; private set; }
     public string? LastScanCorrelationId { get; private set; }
+
+    // Connection references (new model)
+    public string? AdoConnectionId { get; private set; }
+    public string? AzureConnectionId { get; private set; }
+    public string? PipelineId { get; private set; }  // ADO Pipeline ID
 
     private Pipeline() { } // EF/ORM
 
@@ -54,18 +63,77 @@ public class Pipeline : BaseEntity
         return pipeline;
     }
 
-    public void Update(
-        string name,
-        string branch,
-        string terraformPath,
-        string subscriptionId,
-        string resourceGroup)
+    /// <summary>
+    /// Creates a Pipeline from connection references (new simplified model)
+    /// </summary>
+    public static Pipeline CreateFromConnections(
+        string tenantId,
+        string adoConnectionId,
+        string azureConnectionId,
+        string organization,
+        string project,
+        string pipelineId,
+        string pipelineName,
+        string subscriptionId)
     {
-        Name = name;
-        Branch = branch;
-        TerraformPath = terraformPath;
-        SubscriptionId = subscriptionId;
-        ResourceGroup = resourceGroup;
+        var pipeline = new Pipeline
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = tenantId,
+            Name = pipelineName,
+            Organization = organization,
+            Project = project,
+            PipelineId = pipelineId,
+            AdoConnectionId = adoConnectionId,
+            AzureConnectionId = azureConnectionId,
+            SubscriptionId = subscriptionId,
+            RepositoryId = string.Empty,  // Not needed in new model
+            Branch = "main",
+            TerraformPath = string.Empty, // Not needed in new model
+            ResourceGroup = string.Empty, // Will be scanned dynamically
+            Status = PipelineStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        pipeline.AddDomainEvent(new PipelineCreatedEvent(pipeline.Id, pipeline.TenantId, pipeline.Name));
+
+        return pipeline;
+    }
+
+    public void Update(
+        string? name = null,
+        string? branch = null,
+        string? terraformPath = null,
+        string? subscriptionId = null,
+        string? resourceGroup = null,
+        string? repositoryName = null,
+        string? planOnlyParameter = null,
+        string? adoConnectionId = null)
+    {
+        if (name != null)
+            Name = name;
+
+        if (branch != null)
+            Branch = branch;
+
+        if (terraformPath != null)
+            TerraformPath = terraformPath;
+
+        if (subscriptionId != null)
+            SubscriptionId = subscriptionId;
+
+        if (resourceGroup != null)
+            ResourceGroup = resourceGroup;
+
+        if (repositoryName != null)
+            RepositoryName = repositoryName;
+
+        if (planOnlyParameter != null)
+            PlanOnlyParameter = planOnlyParameter;
+
+        if (adoConnectionId != null)
+            AdoConnectionId = adoConnectionId;
+
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -107,10 +175,17 @@ public class Pipeline : BaseEntity
         string resourceGroup,
         PipelineStatus status,
         DateTimeOffset? lastScanAt,
+        string? lastScanStatus,
+        string? lastScanError,
         int driftCount,
         string? lastScanCorrelationId,
         DateTimeOffset createdAt,
-        DateTimeOffset? updatedAt)
+        DateTimeOffset? updatedAt,
+        string? adoConnectionId = null,
+        string? azureConnectionId = null,
+        string? pipelineId = null,
+        string? repositoryName = null,
+        string? planOnlyParameter = null)
     {
         return new Pipeline
         {
@@ -124,12 +199,19 @@ public class Pipeline : BaseEntity
             TerraformPath = terraformPath,
             SubscriptionId = subscriptionId,
             ResourceGroup = resourceGroup,
+            RepositoryName = repositoryName,
+            PlanOnlyParameter = planOnlyParameter ?? "PLAN_ONLY",
             Status = status,
             LastScanAt = lastScanAt,
+            LastScanStatus = lastScanStatus,
+            LastScanError = lastScanError,
             DriftCount = driftCount,
             LastScanCorrelationId = lastScanCorrelationId,
             CreatedAt = createdAt,
-            UpdatedAt = updatedAt
+            UpdatedAt = updatedAt,
+            AdoConnectionId = adoConnectionId,
+            AzureConnectionId = azureConnectionId,
+            PipelineId = pipelineId
         };
     }
 }

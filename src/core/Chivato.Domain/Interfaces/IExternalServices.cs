@@ -54,7 +54,21 @@ public interface IAdoService
     Task<bool> TestConnectionAsync(
         string organization,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<AdoProject>> GetProjectsAsync(
+        string organization,
+        string patToken,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<AdoPipeline>> GetPipelinesAsync(
+        string organization,
+        string project,
+        string patToken,
+        CancellationToken ct = default);
 }
+
+public record AdoProject(string Id, string Name);
+public record AdoPipeline(string Id, string Name);
 
 /// <summary>
 /// SignalR service for real-time notifications

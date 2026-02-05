@@ -30,7 +30,10 @@ public class UpdatePipelineHandler : IRequestHandler<UpdatePipelineCommand, Upda
                 request.Branch,
                 request.TerraformPath,
                 request.SubscriptionId,
-                request.ResourceGroup
+                request.ResourceGroup,
+                request.RepositoryName,
+                request.PlanOnlyParameter,
+                request.AdoConnectionId
             );
 
             await _repository.UpdateAsync(pipeline, cancellationToken);

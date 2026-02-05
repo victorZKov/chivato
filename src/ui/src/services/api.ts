@@ -1,4 +1,4 @@
-import { msalInstance } from "../auth/authConfig";
+import { ensureMsalInitialized } from "../auth/authConfig";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7071/api";
 
@@ -7,12 +7,13 @@ interface RequestOptions extends RequestInit {
 }
 
 async function getAccessToken(): Promise<string | null> {
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length === 0) return null;
-
   try {
+    const msalInstance = await ensureMsalInitialized();
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length === 0) return null;
+
     const response = await msalInstance.acquireTokenSilent({
-      scopes: [`api://${import.meta.env.VITE_ENTRA_CLIENT_ID}/access_as_user`],
+      scopes: ["User.Read", "openid", "profile", "email"],
       account: accounts[0],
     });
     return response.accessToken;
@@ -47,7 +48,19 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+
+    // Handle ASP.NET validation errors (ProblemDetails format)
+    if (error.errors && typeof error.errors === "object") {
+      const messages = Object.values(error.errors).flat().join(". ");
+      throw new Error(messages || error.title || `HTTP ${response.status}`);
+    }
+
+    throw new Error(error.message || error.error || error.title || `HTTP ${response.status}`);
+  }
+
+  // Handle 204 No Content responses
+  if (response.status === 204) {
+    return null as T;
   }
 
   return response.json();
@@ -69,7 +82,7 @@ export const configApi = {
   deleteAzureConnection: (id: string) =>
     apiRequest(`/config/azure/${id}`, { method: "DELETE" }),
   testAzureConnection: (id: string) =>
-    apiRequest<{ success: boolean }>(`/config/azure/${id}/test`, { method: "POST" }),
+    apiRequest<{ success: boolean; status: string; error?: string }>(`/config/azure/${id}/test`, { method: "POST" }),
 
   // ADO Connections
   getAdoConnections: () => apiRequest<AdoConnection[]>("/config/ado"),
@@ -80,7 +93,7 @@ export const configApi = {
   deleteAdoConnection: (id: string) =>
     apiRequest(`/config/ado/${id}`, { method: "DELETE" }),
   testAdoConnection: (id: string) =>
-    apiRequest<{ success: boolean }>(`/config/ado/${id}/test`, { method: "POST" }),
+    apiRequest<{ success: boolean; status: string; error?: string }>(`/config/ado/${id}/test`, { method: "POST" }),
 
   // AI Connection
   getAiConnection: () => apiRequest<AiConnection | null>("/config/ai"),
@@ -102,12 +115,17 @@ export const configApi = {
 // Pipelines API
 export const pipelinesApi = {
   getPipelines: () => apiRequest<Pipeline[]>("/pipelines"),
+  getPipeline: (id: string) => apiRequest<Pipeline>(`/pipelines/${id}`),
   createPipelines: (data: CreatePipelinesInput) =>
     apiRequest("/pipelines", { method: "POST", body: JSON.stringify(data) }),
   updatePipeline: (id: string, data: Partial<UpdatePipelineInput>) =>
     apiRequest(`/pipelines/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deletePipeline: (id: string) =>
     apiRequest(`/pipelines/${id}`, { method: "DELETE" }),
+  activatePipeline: (id: string) =>
+    apiRequest(`/pipelines/${id}/activate`, { method: "POST" }),
+  deactivatePipeline: (id: string) =>
+    apiRequest(`/pipelines/${id}/deactivate`, { method: "POST" }),
   scanPipeline: (id: string) =>
     apiRequest<ScanResult>(`/pipelines/${id}/scan`, { method: "POST" }),
 
@@ -116,6 +134,21 @@ export const pipelinesApi = {
     apiRequest<string[]>(`/ado/${connectionId}/projects`),
   getAdoPipelines: (connectionId: string, project: string) =>
     apiRequest<{ id: string; name: string }[]>(`/ado/${connectionId}/projects/${encodeURIComponent(project)}/pipelines`),
+};
+
+// Scans API
+export const scansApi = {
+  getScans: (pipelineId: string, page = 1, pageSize = 50) => {
+    const query = new URLSearchParams({
+      pipelineId,
+      page: String(page),
+      pageSize: String(pageSize),
+    });
+    return apiRequest<PagedResult<ScanLogItem>>(`/scans?${query}`);
+  },
+  getScan: (id: string) => apiRequest<ScanDetailItem>(`/scans/${id}`),
+  getScanDrifts: (scanId: string) =>
+    apiRequest<ScanDriftItem[]>(`/scans/${scanId}/drifts`),
 };
 
 // Paginated response type
@@ -128,11 +161,12 @@ interface PagedResult<T> {
 
 // Drift API
 export const driftApi = {
-  getDriftRecords: async (params?: { from?: string; to?: string; severity?: string }): Promise<DriftRecord[]> => {
+  getDriftRecords: async (params?: { from?: string; to?: string; severity?: string; pipelineId?: string }): Promise<DriftRecord[]> => {
     const query = new URLSearchParams();
     if (params?.from) query.set("from", params.from);
     if (params?.to) query.set("to", params.to);
     if (params?.severity) query.set("severity", params.severity);
+    if (params?.pipelineId) query.set("pipelineId", params.pipelineId);
     const result = await apiRequest<PagedResult<DriftRecord>>(`/drift?${query}`);
     return result.items;
   },
@@ -185,17 +219,19 @@ export interface CreateAzureConnectionInput {
 export interface AdoConnection {
   id: string;
   name: string;
-  organizationUrl: string;
-  authType: "PAT" | "OAuth";
-  status: "active" | "expiring" | "expired";
-  expiresAt?: string;
+  organization: string;
+  project: string;
+  status: "Connected" | "Error" | "Unknown";
+  lastTestedAt?: string;
+  lastTestError?: string;
+  isDefault: boolean;
 }
 
 export interface CreateAdoConnectionInput {
   name: string;
-  organizationUrl: string;
-  pat: string;
-  expiresAt?: string;
+  organization: string;
+  project: string;
+  patToken: string;
 }
 
 export interface AiConnection {
@@ -216,13 +252,19 @@ export interface CreateAiConnectionInput {
 export interface EmailRecipient {
   id: string;
   email: string;
-  notifyOn: "always" | "drift_only" | "weekly";
+  name: string;
+  minimumSeverity: "Critical" | "High" | "Medium" | "Low";
+  notifyOnScanComplete: boolean;
+  notifyOnNewDrift: boolean;
   isActive: boolean;
 }
 
 export interface CreateEmailRecipientInput {
   email: string;
-  notifyOn: "always" | "drift_only" | "weekly";
+  name: string;
+  minimumSeverity: "Critical" | "High" | "Medium" | "Low";
+  notifyOnScanComplete?: boolean;
+  notifyOnNewDrift?: boolean;
 }
 
 export interface Pipeline {
@@ -237,7 +279,13 @@ export interface Pipeline {
   azureConnectionName: string;
   isActive: boolean;
   lastScanAt?: string;
+  lastScanStatus?: string; // Running, Success, Failed
+  lastScanError?: string;
+  lastScanSummary?: string;
   driftCount?: number;
+  branch: string;
+  repositoryName?: string;
+  planOnlyParameter: string;
 }
 
 export interface CreatePipelinesInput {
@@ -248,8 +296,14 @@ export interface CreatePipelinesInput {
 }
 
 export interface UpdatePipelineInput {
-  isActive?: boolean;
-  azureConnectionId?: string;
+  name?: string;
+  branch?: string;
+  terraformPath?: string;
+  subscriptionId?: string;
+  resourceGroup?: string;
+  repositoryName?: string;
+  planOnlyParameter?: string;
+  adoConnectionId?: string;
 }
 
 export interface ScanResult {
@@ -366,4 +420,40 @@ export interface BillingInfoInput {
   addressLine2?: string;
   city?: string;
   postalCode?: string;
+}
+
+export interface ScanLogItem {
+  id: string;
+  pipelineId: string;
+  pipelineName?: string;
+  startedAt: string;
+  completedAt?: string;
+  status: string;
+  driftCount?: number;
+  durationSeconds?: number;
+  triggeredBy?: string;
+  errorMessage?: string;
+  resourcesScanned?: number;
+}
+
+export interface ScanDetailItem extends ScanLogItem {
+  correlationId?: string;
+}
+
+export interface ScanDriftItem {
+  id: string;
+  pipelineId: string;
+  pipelineName: string;
+  severity: string;
+  resourceId: string;
+  resourceType: string;
+  resourceName: string;
+  property: string;
+  expectedValue: string;
+  actualValue: string;
+  description: string;
+  recommendation: string;
+  category: string;
+  detectedAt: string;
+  status: string;
 }

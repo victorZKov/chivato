@@ -1,0 +1,50 @@
+{
+  "$schema": "./installation.schema.json",
+  "installation": {
+    "mode": "single-tenant",
+    "version": "1.0.0",
+    "tenantId": "default-tenant",
+    "instanceName": "Chivato - Customer Instance"
+  },
+  "features": {
+    "driftDetection": true,
+    "aiAnalysis": true,
+    "emailNotifications": true,
+    "signalRNotifications": true,
+    "billing": false,
+    "multiOrganization": false
+  },
+  "limits": {
+    "maxPipelines": -1,
+    "maxScansPerDay": -1,
+    "maxConnectionsPerType": -1,
+    "retentionDays": 365
+  },
+  "branding": {
+    "productName": "Chivato",
+    "logoUrl": null,
+    "primaryColor": "#0078d4",
+    "supportEmail": null
+  },
+  "authentication": {
+    "provider": "AzureAD",
+    "requireAuthentication": true,
+    "allowedRoles": ["Admin", "Viewer"],
+    "adminRole": "Admin"
+  },
+  "integrations": {
+    "azureDevOps": {
+      "enabled": true,
+      "maxOrganizations": 10
+    },
+    "azureResources": {
+      "enabled": true,
+      "maxSubscriptions": 20
+    },
+    "ai": {
+      "provider": "AzureOpenAI",
+      "model": "gpt-4o",
+      "maxTokensPerAnalysis": 4000
+    }
+  }
+}

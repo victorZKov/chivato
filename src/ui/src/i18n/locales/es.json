@@ -20,6 +20,8 @@
     "status": "Estado",
     "active": "Activo",
     "inactive": "Inactivo",
+    "enable": "Habilitar",
+    "disable": "Deshabilitar",
     "enabled": "Habilitado",
     "disabled": "Deshabilitado",
     "name": "Nombre",
@@ -29,7 +31,9 @@
     "noData": "No hay datos disponibles",
     "retry": "Reintentar",
     "refresh": "Actualizar",
-    "select": "Seleccionar"
+    "select": "Seleccionar",
+    "back": "Volver",
+    "viewAll": "Ver Todos"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -85,6 +89,8 @@
     "expired": "Expirado",
     "expiringSoon": "Por Expirar",
     "healthy": "Saludable",
+    "error": "Error",
+    "unknown": "Desconocido",
     "expiresAt": "Expira El",
     "lastTested": "Última Prueba",
     "neverTested": "Nunca probado",
@@ -126,6 +132,13 @@
     "title": "Historial de Drift",
     "subtitle": "Ver todos los drifts de infraestructura detectados",
     "noResults": "No se encontraron drifts",
+    "severity": "Severidad",
+    "resource": "Recurso",
+    "description": "Descripción",
+    "detectedAt": "Detectado El",
+    "property": "Propiedad",
+    "expected": "Esperado",
+    "actual": "Actual",
     "filters": {
       "pipeline": "Pipeline",
       "allPipelines": "Todos los Pipelines",
@@ -139,6 +152,8 @@
     "table": {
       "resource": "Recurso",
       "resourceType": "Tipo de Recurso",
+      "resourceName": "Nombre del Recurso",
+      "resourceId": "ID del Recurso",
       "property": "Propiedad",
       "expected": "Esperado",
       "actual": "Actual",
@@ -152,7 +167,9 @@
       "description": "Descripción",
       "recommendation": "Recomendación",
       "category": "Categoría",
-      "resourceId": "ID del Recurso"
+      "resourceId": "ID del Recurso",
+      "resource": "Recurso",
+      "changes": "Cambios"
     },
     "stats": {
       "title": "Estadísticas",
@@ -183,6 +200,10 @@
     "subtitle": "Ver historial y resultados de escaneos",
     "noResults": "No se encontraron escaneos",
     "runAnalysis": "Ejecutar Análisis",
+    "status": "Estado",
+    "startedAt": "Iniciado El",
+    "duration": "Duración",
+    "driftsFound": "Drifts Encontrados",
     "filters": {
       "pipeline": "Pipeline",
       "status": "Estado",
@@ -298,7 +319,61 @@
       "scan": "Escanear Ahora"
     },
     "confirmDelete": "¿Estás seguro de que quieres eliminar este pipeline?",
-    "deleteWarning": "Esta acción no se puede deshacer."
+    "deleteWarning": "Esta acción no se puede deshacer.",
+    "viewInAdo": "Ver en ADO",
+    "scanNow": "Escanear Ahora",
+    "scanning": "Escaneando...",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "overview": "Resumen",
+    "drifts": "Drifts",
+    "scanHistory": "Historial de Escaneos",
+    "projectInfo": "Info del Proyecto",
+    "project": "Proyecto",
+    "organization": "Organización",
+    "pipelineId": "ID del Pipeline",
+    "connections": "Conexiones",
+    "adoConnection": "Conexión ADO",
+    "azureConnection": "Conexión Azure",
+    "scanStatus": {
+      "running": "Escaneando",
+      "success": "Éxito",
+      "failed": "Fallido",
+      "cancelled": "Cancelado",
+      "completedWithErrors": "Completado con errores",
+      "unknown": "Desconocido"
+    },
+    "lastScan": "Último Escaneo",
+    "neverScanned": "Nunca escaneado",
+    "currentDrifts": "Drifts Actuales",
+    "recentDrifts": "Drifts Recientes",
+    "noDrifts": "No se detectaron drifts",
+    "noScans": "No hay escaneos registrados",
+    "notFound": "Pipeline no encontrado",
+    "detail": {
+      "iacConfig": "Configuracion IaC",
+      "iacDescription": "Configura como Chivato lee el codigo Terraform del repositorio de este pipeline.",
+      "connectionsInfo": "Informacion de Conexiones",
+      "branch": "Rama",
+      "repository": "Repositorio",
+      "planOnlyParam": "Parametro Plan Only",
+      "notConfigured": "No configurado",
+      "configSaved": "Configuracion guardada correctamente",
+      "scanTriggered": "Escaneo iniciado correctamente",
+      "scanStarted": "Escaneo iniciado...",
+      "scanCompleted": "Escaneo completado correctamente",
+      "scanFailed": "Escaneo fallido: ",
+      "activeDrifts": "Drifts Activos",
+      "totalScans": "Escaneos Totales",
+      "health": "Salud",
+      "healthy": "Saludable",
+      "unhealthy": "Necesita Atencion",
+      "dangerZone": "Zona de Peligro",
+      "dangerDescription": "Esto eliminara permanentemente este pipeline y todo su historial de escaneos. Esta accion no se puede deshacer.",
+      "deletePipeline": "Eliminar Pipeline",
+      "noDriftsDescription": "No se han detectado drifts para este pipeline. Ejecuta un escaneo para verificar el drift de infraestructura.",
+      "noScansDescription": "Aun no se han ejecutado escaneos para este pipeline. Inicia un escaneo para comenzar a monitorear."
+    }
   },
   "configuration": {
     "title": "Configuración",
@@ -323,9 +398,12 @@
       "testConnection": "Probar Conexión",
       "connectionSuccess": "Conexión exitosa",
       "connectionFailed": "Conexión fallida",
+      "connectionSaved": "Conexión guardada correctamente",
       "tenant": "Tenant",
       "client": "Client",
-      "auth": "Auth"
+      "auth": "Auth",
+      "organization": "Organización",
+      "project": "Proyecto"
     },
     "timer": {
       "title": "Configuración del Timer",
@@ -352,6 +430,14 @@
       "addRecipient": "Agregar Destinatario",
       "email": "Dirección de Email",
       "noRecipients": "No hay destinatarios configurados",
+      "minSeverity": "Severidad Mínima",
+      "namePlaceholder": "Se usará el email si se deja vacío",
+      "severity": {
+        "critical": "Crítico",
+        "high": "Alto",
+        "medium": "Medio",
+        "low": "Bajo"
+      },
       "notifyOn": {
         "label": "Notificar",
         "always": "Todas las notificaciones",
@@ -372,6 +458,9 @@
     },
     "status": {
       "active": "Activo",
+      "connected": "Conectado",
+      "error": "Error",
+      "unknown": "Sin probar",
       "expiring": "Expira {{date}}",
       "expired": "Expirado"
     },
@@ -387,6 +476,8 @@
       "subscriptionId": "Subscription ID",
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
+      "organization": "Organización",
+      "project": "Proyecto",
       "organizationUrl": "URL de Organización",
       "pat": "Personal Access Token",
       "deploymentName": "Deployment Name"
@@ -513,6 +604,12 @@
     "title": "Notificaciones",
     "markAllRead": "Marcar todas como leídas",
     "noNotifications": "Sin notificaciones",
+    "empty": "No hay notificaciones",
+    "clearAll": "Borrar todas",
+    "remove": "Eliminar",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {{count}} min",
+    "hoursAgo": "Hace {{count}} h",
     "newDrift": "Nuevo drift detectado",
     "scanComplete": "Escaneo completado",
     "scanFailed": "Escaneo fallido",

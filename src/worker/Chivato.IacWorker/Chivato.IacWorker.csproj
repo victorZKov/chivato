@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Chivato.IacWorker</RootNamespace>
+    <UserSecretsId>chivato-iac-worker-dev</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Shared library -->
+    <ProjectReference Include="..\..\shared\Chivato.Shared\Chivato.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Worker Service -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+
+    <!-- Azure Storage Queues (for development with Azurite) -->
+    <PackageReference Include="Azure.Storage.Queues" Version="12.20.0" />
+
+    <!-- Azure Service Bus (for production) -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
+
+    <!-- Application Insights -->
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
+
+    <!-- Health Checks -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0" />
+
+    <!-- For process execution -->
+    <PackageReference Include="CliWrap" Version="3.6.6" />
+  </ItemGroup>
+
+</Project>

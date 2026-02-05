@@ -1,6 +1,7 @@
 using Chivato.Application.Commands.Analysis;
 using Chivato.Application.Common;
 using Chivato.Domain.Interfaces;
+using Chivato.Shared.Models.Messages;
 using MediatR;
 
 namespace Chivato.Application.Handlers.Analysis;
@@ -10,7 +11,8 @@ public class TriggerAnalysisHandler : IRequestHandler<TriggerAnalysisCommand, Tr
     private readonly IMessageQueueService _messageQueue;
     private readonly ICurrentUser _currentUser;
 
-    private const string QueueName = "drift-analysis-requests";
+    // Use IaC analysis queue for terraform plan analysis
+    private const string QueueName = "iac-analysis-requests";
 
     public TriggerAnalysisHandler(IMessageQueueService messageQueue, ICurrentUser currentUser)
     {
@@ -24,14 +26,17 @@ public class TriggerAnalysisHandler : IRequestHandler<TriggerAnalysisCommand, Tr
         {
             var correlationId = Guid.NewGuid().ToString();
 
-            var message = new DriftAnalysisMessage(
-                correlationId,
-                _currentUser.TenantId,
-                request.PipelineId,
-                request.AnalyzeAll,
-                _currentUser.UserId,
-                DateTimeOffset.UtcNow
-            );
+            // Send IaC analysis message for terraform plan-based drift detection
+            var message = new IacAnalysisMessage
+            {
+                CorrelationId = correlationId,
+                TenantId = _currentUser.TenantId,
+                PipelineId = request.PipelineId ?? string.Empty,
+                TriggerType = request.AnalyzeAll ? "ScheduledBatch" : "AdHoc",
+                IacType = "terraform",
+                InitiatedBy = _currentUser.UserId,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
             await _messageQueue.SendAsync(QueueName, message, cancellationToken);
 

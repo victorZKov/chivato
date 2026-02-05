@@ -158,18 +158,15 @@ public class TestAzureConnectionHandler : IRequestHandler<TestAzureConnectionCom
 {
     private readonly IAzureConnectionRepository _repository;
     private readonly IKeyVaultService _keyVault;
-    private readonly IAzureResourceService _azureService;
     private readonly ICurrentUser _currentUser;
 
     public TestAzureConnectionHandler(
         IAzureConnectionRepository repository,
         IKeyVaultService keyVault,
-        IAzureResourceService azureService,
         ICurrentUser currentUser)
     {
         _repository = repository;
         _keyVault = keyVault;
-        _azureService = azureService;
         _currentUser = currentUser;
     }
 
@@ -181,10 +178,26 @@ public class TestAzureConnectionHandler : IRequestHandler<TestAzureConnectionCom
             if (connection == null)
                 return new TestConnectionResult(false, "Error", "Connection not found");
 
-            // Try to list resources to test connection
-            var resources = await _azureService.GetResourcesInGroupAsync(
-                connection.SubscriptionId, "test-rg", ct);
+            // Get the client secret from Key Vault
+            var clientSecret = await _keyVault.GetSecretAsync(connection.ClientSecretKeyVaultKey, ct);
+            if (string.IsNullOrEmpty(clientSecret))
+                return new TestConnectionResult(false, "Error", "Client secret not found in Key Vault");
 
+            // Create credential with the connection's Service Principal
+            var credential = new Azure.Identity.ClientSecretCredential(
+                connection.AzureTenantId,
+                connection.ClientId,
+                clientSecret);
+
+            // Create ArmClient with the specific credential
+            var armClient = new Azure.ResourceManager.ArmClient(credential);
+
+            // Test by getting the subscription - this validates the credentials
+            var subscription = armClient.GetSubscriptionResource(
+                new Azure.Core.ResourceIdentifier($"/subscriptions/{connection.SubscriptionId}"));
+            var subscriptionData = await subscription.GetAsync(ct);
+
+            // If we get here, the connection is valid
             connection.RecordTestSuccess();
             await _repository.UpdateAsync(connection, ct);
 
@@ -271,6 +284,217 @@ public class RemoveEmailRecipientHandler : IRequestHandler<RemoveEmailRecipientC
 
         try
         {
+            await _repository.DeleteAsync(_currentUser.TenantId, request.Id, ct);
+            return new CommandResult(true);
+        }
+        catch (Exception ex)
+        {
+            return new CommandResult(false, ex.Message);
+        }
+    }
+}
+
+public class DeleteAzureConnectionHandler : IRequestHandler<DeleteAzureConnectionCommand, CommandResult>
+{
+    private readonly IAzureConnectionRepository _repository;
+    private readonly IKeyVaultService _keyVault;
+    private readonly ICurrentUser _currentUser;
+
+    public DeleteAzureConnectionHandler(
+        IAzureConnectionRepository repository,
+        IKeyVaultService keyVault,
+        ICurrentUser currentUser)
+    {
+        _repository = repository;
+        _keyVault = keyVault;
+        _currentUser = currentUser;
+    }
+
+    public async Task<CommandResult> Handle(DeleteAzureConnectionCommand request, CancellationToken ct)
+    {
+        if (!_currentUser.IsAdmin)
+            return new CommandResult(false, "Only admins can delete connections");
+
+        try
+        {
+            var connection = await _repository.GetByIdAsync(_currentUser.TenantId, request.Id, ct);
+            if (connection == null)
+                return new CommandResult(false, "Connection not found");
+
+            // Delete secret from Key Vault
+            await _keyVault.DeleteSecretAsync(connection.ClientSecretKeyVaultKey, ct);
+
+            // Delete the connection
+            await _repository.DeleteAsync(_currentUser.TenantId, request.Id, ct);
+            return new CommandResult(true);
+        }
+        catch (Exception ex)
+        {
+            return new CommandResult(false, ex.Message);
+        }
+    }
+}
+
+public class SaveAdoConnectionHandler : IRequestHandler<SaveAdoConnectionCommand, SaveConnectionResult>
+{
+    private readonly IAdoConnectionRepository _repository;
+    private readonly IKeyVaultService _keyVault;
+    private readonly ICurrentUser _currentUser;
+
+    public SaveAdoConnectionHandler(
+        IAdoConnectionRepository repository,
+        IKeyVaultService keyVault,
+        ICurrentUser currentUser)
+    {
+        _repository = repository;
+        _keyVault = keyVault;
+        _currentUser = currentUser;
+    }
+
+    public async Task<SaveConnectionResult> Handle(SaveAdoConnectionCommand request, CancellationToken ct)
+    {
+        if (!_currentUser.IsAdmin)
+            return new SaveConnectionResult(string.Empty, false, "Only admins can modify connections");
+
+        try
+        {
+            var tenantId = _currentUser.TenantId;
+            var secretName = $"ado-pat-{tenantId}-{request.Organization}";
+
+            // Store PAT in Key Vault
+            await _keyVault.SetSecretAsync(secretName, request.PatToken, null, ct);
+
+            AdoConnection connection;
+
+            if (string.IsNullOrEmpty(request.Id))
+            {
+                // Create new
+                connection = AdoConnection.Create(
+                    tenantId, request.Name, request.Organization,
+                    request.Project, secretName, request.IsDefault
+                );
+                await _repository.AddAsync(connection, ct);
+            }
+            else
+            {
+                // Update existing
+                connection = await _repository.GetByIdAsync(tenantId, request.Id, ct)
+                    ?? throw new InvalidOperationException("Connection not found");
+
+                connection.Update(request.Name, request.Organization, request.Project, secretName);
+
+                if (request.IsDefault)
+                    connection.MarkAsDefault();
+
+                await _repository.UpdateAsync(connection, ct);
+            }
+
+            return new SaveConnectionResult(connection.Id, true);
+        }
+        catch (Exception ex)
+        {
+            return new SaveConnectionResult(string.Empty, false, ex.Message);
+        }
+    }
+}
+
+public class TestAdoConnectionHandler : IRequestHandler<TestAdoConnectionCommand, TestConnectionResult>
+{
+    private readonly IAdoConnectionRepository _repository;
+    private readonly IKeyVaultService _keyVault;
+    private readonly ICurrentUser _currentUser;
+
+    public TestAdoConnectionHandler(
+        IAdoConnectionRepository repository,
+        IKeyVaultService keyVault,
+        ICurrentUser currentUser)
+    {
+        _repository = repository;
+        _keyVault = keyVault;
+        _currentUser = currentUser;
+    }
+
+    public async Task<TestConnectionResult> Handle(TestAdoConnectionCommand request, CancellationToken ct)
+    {
+        try
+        {
+            var connection = await _repository.GetByIdAsync(_currentUser.TenantId, request.Id, ct);
+            if (connection == null)
+                return new TestConnectionResult(false, "Error", "Connection not found");
+
+            // Get the PAT from Key Vault
+            var patToken = await _keyVault.GetSecretAsync(connection.PatKeyVaultKey, ct);
+            if (string.IsNullOrEmpty(patToken))
+                return new TestConnectionResult(false, "Error", "PAT token not found in Key Vault");
+
+            // Test connection using HTTP client
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Accept.Add(
+                new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
+                    Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($":{patToken}")));
+
+            var url = $"https://dev.azure.com/{connection.Organization}/_apis/projects/{connection.Project}?api-version=7.0";
+            var response = await httpClient.GetAsync(url, ct);
+
+            if (response.IsSuccessStatusCode)
+            {
+                connection.RecordTestSuccess();
+                await _repository.UpdateAsync(connection, ct);
+                return new TestConnectionResult(true, "Connected");
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync(ct);
+            connection.RecordTestFailure($"HTTP {(int)response.StatusCode}: {errorContent}");
+            await _repository.UpdateAsync(connection, ct);
+            return new TestConnectionResult(false, "Error", $"HTTP {(int)response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            var connection = await _repository.GetByIdAsync(_currentUser.TenantId, request.Id, ct);
+            if (connection != null)
+            {
+                connection.RecordTestFailure(ex.Message);
+                await _repository.UpdateAsync(connection, ct);
+            }
+
+            return new TestConnectionResult(false, "Error", ex.Message);
+        }
+    }
+}
+
+public class DeleteAdoConnectionHandler : IRequestHandler<DeleteAdoConnectionCommand, CommandResult>
+{
+    private readonly IAdoConnectionRepository _repository;
+    private readonly IKeyVaultService _keyVault;
+    private readonly ICurrentUser _currentUser;
+
+    public DeleteAdoConnectionHandler(
+        IAdoConnectionRepository repository,
+        IKeyVaultService keyVault,
+        ICurrentUser currentUser)
+    {
+        _repository = repository;
+        _keyVault = keyVault;
+        _currentUser = currentUser;
+    }
+
+    public async Task<CommandResult> Handle(DeleteAdoConnectionCommand request, CancellationToken ct)
+    {
+        if (!_currentUser.IsAdmin)
+            return new CommandResult(false, "Only admins can delete connections");
+
+        try
+        {
+            var connection = await _repository.GetByIdAsync(_currentUser.TenantId, request.Id, ct);
+            if (connection == null)
+                return new CommandResult(false, "Connection not found");
+
+            // Delete secret from Key Vault
+            await _keyVault.DeleteSecretAsync(connection.PatKeyVaultKey, ct);
+
+            // Delete the connection
             await _repository.DeleteAsync(_currentUser.TenantId, request.Id, ct);
             return new CommandResult(true);
         }

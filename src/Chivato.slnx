@@ -1,8 +1,13 @@
 <Solution>
+  <Folder Name="/core/">
+    <Project Path="core/Chivato.Domain/Chivato.Domain.csproj" />
+    <Project Path="core/Chivato.Application/Chivato.Application.csproj" />
+    <Project Path="core/Chivato.Infrastructure/Chivato.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/api/">
     <Project Path="api/Chivato.Api/Chivato.Api.csproj" />
   </Folder>
-  <Folder Name="/shared/">
-    <Project Path="shared/Chivato.Shared/Chivato.Shared.csproj" />
+  <Folder Name="/worker/">
+    <Project Path="worker/Chivato.Worker/Chivato.Worker.csproj" />
   </Folder>
 </Solution>

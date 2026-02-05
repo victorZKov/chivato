@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using Chivato.Shared.Constants;
 using Chivato.Shared.Models.Messages;
 using System.Text.Json;
 
@@ -12,15 +13,14 @@ public class ServiceBusMessageQueueService : IMessageQueueService, IAsyncDisposa
 {
     private readonly ServiceBusClient _client;
     private readonly ServiceBusSender _sender;
-    private const string QueueName = "drift-analysis-requests";
 
     public ServiceBusMessageQueueService(string connectionString)
     {
         _client = new ServiceBusClient(connectionString);
-        _sender = _client.CreateSender(QueueName);
+        _sender = _client.CreateSender(QueueNames.IacAnalysisRequests);
     }
 
-    public async Task SendAnalysisMessageAsync(DriftAnalysisMessage message)
+    public async Task SendAnalysisMessageAsync(IacAnalysisMessage message)
     {
         var messageId = $"{message.TriggerType}-{message.PipelineId ?? "all"}-{message.CorrelationId}";
 
@@ -35,7 +35,7 @@ public class ServiceBusMessageQueueService : IMessageQueueService, IAsyncDisposa
         await _sender.SendMessageAsync(serviceBusMessage);
     }
 
-    public async Task SendAnalysisMessagesAsync(IEnumerable<DriftAnalysisMessage> messages)
+    public async Task SendAnalysisMessagesAsync(IEnumerable<IacAnalysisMessage> messages)
     {
         var batch = await _sender.CreateMessageBatchAsync();
 

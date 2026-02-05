@@ -56,7 +56,7 @@
 
 .pipelines-table-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 100px 120px 120px 80px;
+  grid-template-columns: 2fr 1fr 1fr 140px 170px 120px 120px;
   gap: var(--space-4);
   padding: var(--space-4);
   background-color: var(--bg-tertiary);
@@ -68,7 +68,7 @@
 
 .pipeline-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 100px 120px 120px 80px;
+  grid-template-columns: 2fr 1fr 1fr 140px 170px 120px 120px;
   gap: var(--space-4);
   padding: var(--space-4);
   align-items: center;
@@ -82,6 +82,10 @@
 
 .pipeline-row:hover {
   background-color: var(--bg-tertiary);
+}
+
+.pipeline-row.clickable {
+  cursor: pointer;
 }
 
 .pipeline-row.inactive {
@@ -109,6 +113,82 @@
   font-weight: var(--font-medium);
 }
 
+.status-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+}
+
+.scan-status-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scan-running {
+  background-color: var(--info-bg);
+  color: var(--info);
+  animation: pulse-running 1s ease-in-out infinite;
+  position: relative;
+}
+
+.scan-running::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes pulse-running {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+    box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.3);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.scan-success {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.scan-failed {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.scan-completedWithErrors {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+}
+
+.scan-cancelled,
+.scan-unknown {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
 .status-active {
   background-color: var(--success-bg);
   color: var(--success);
@@ -122,6 +202,22 @@
 .drift-count {
   color: var(--warning);
   font-weight: var(--font-medium);
+}
+
+.last-scan {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.last-scan-relative {
+  font-weight: var(--font-medium);
+}
+
+.last-scan-exact {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .pipeline-actions {
@@ -238,7 +334,7 @@
 @media (max-width: 1024px) {
   .pipelines-table-header,
   .pipeline-row {
-    grid-template-columns: 1fr 1fr 100px 100px 80px;
+    grid-template-columns: 1fr 1fr 120px 150px 120px;
   }
 
   .pipelines-table-header span:nth-child(3),

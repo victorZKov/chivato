@@ -40,10 +40,48 @@ public class PipelinesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates pipelines from connection references (matches UI model)
+    /// </summary>
     [HttpPost]
+    [ProducesResponseType(typeof(CreatePipelinesResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreatePipelines([FromBody] CreatePipelinesRequest request)
+    {
+        _logger.LogInformation(
+            "CreatePipelines called: AdoConnectionId={AdoConnectionId}, AzureConnectionId={AzureConnectionId}, ProjectName={ProjectName}, PipelineCount={PipelineCount}",
+            request.AdoConnectionId, request.AzureConnectionId, request.ProjectName, request.PipelineIds?.Count ?? 0);
+
+        var command = new CreatePipelinesFromConnectionsCommand(
+            AdoConnectionId: request.AdoConnectionId,
+            AzureConnectionId: request.AzureConnectionId,
+            ProjectName: request.ProjectName,
+            PipelineIds: request.PipelineIds ?? new List<string>()
+        );
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            _logger.LogWarning("CreatePipelines failed: {Error}", result.ErrorMessage);
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        _logger.LogInformation("CreatePipelines succeeded: {Count} pipelines created", result.CreatedPipelineIds.Count);
+        return Created("", new
+        {
+            createdPipelineIds = result.CreatedPipelineIds,
+            success = true
+        });
+    }
+
+    /// <summary>
+    /// Legacy endpoint for creating a single pipeline
+    /// </summary>
+    [HttpPost("legacy")]
     [ProducesResponseType(typeof(CreatePipelineResult), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreatePipeline([FromBody] CreatePipelineRequest request)
+    public async Task<IActionResult> CreatePipelineLegacy([FromBody] CreatePipelineLegacyRequest request)
     {
         var command = new CreatePipelineCommand(
             Name: request.Name,
@@ -76,7 +114,10 @@ public class PipelinesController : ControllerBase
             Branch: request.Branch,
             TerraformPath: request.TerraformPath,
             SubscriptionId: request.SubscriptionId,
-            ResourceGroup: request.ResourceGroup
+            ResourceGroup: request.ResourceGroup,
+            RepositoryName: request.RepositoryName,
+            PlanOnlyParameter: request.PlanOnlyParameter,
+            AdoConnectionId: request.AdoConnectionId
         );
 
         var result = await _mediator.Send(command);
@@ -178,7 +219,21 @@ public class PipelinesController : ControllerBase
 }
 
 // Request DTOs
-public record CreatePipelineRequest(
+
+/// <summary>
+/// Request to create pipelines from connection references (matches UI model)
+/// </summary>
+public record CreatePipelinesRequest(
+    string AdoConnectionId,
+    string AzureConnectionId,
+    string ProjectName,
+    List<string> PipelineIds
+);
+
+/// <summary>
+/// Legacy request for creating a single pipeline
+/// </summary>
+public record CreatePipelineLegacyRequest(
     string Name,
     string Organization,
     string Project,
@@ -189,10 +244,14 @@ public record CreatePipelineRequest(
     string ResourceGroup
 );
 
-public record UpdatePipelineRequest(
-    string Name,
-    string Branch,
-    string TerraformPath,
-    string SubscriptionId,
-    string ResourceGroup
-);
+public class UpdatePipelineRequest
+{
+    public string? Name { get; set; }
+    public string? Branch { get; set; }
+    public string? TerraformPath { get; set; }
+    public string? SubscriptionId { get; set; }
+    public string? ResourceGroup { get; set; }
+    public string? RepositoryName { get; set; }
+    public string? PlanOnlyParameter { get; set; }
+    public string? AdoConnectionId { get; set; }
+}

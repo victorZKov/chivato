@@ -1,4 +1,5 @@
 using Chivato.Shared.Models.Messages;
+using Chivato.Shared.Models;
 
 namespace Chivato.Shared.Services;
 
@@ -28,7 +29,12 @@ public interface ISignalRService
     Task SendAnalysisCompletedAsync(string tenantId, AnalysisCompletedEvent completed);
 
     /// <summary>
+    /// Send drift detected notification
+    /// </summary>
+    Task SendDriftDetectedAsync(string tenantId, DriftAnalysisResult result);
+
+    /// <summary>
     /// Send analysis failed notification
     /// </summary>
-    Task SendAnalysisFailedAsync(string tenantId, AnalysisFailedEvent failed);
+    Task SendAnalysisFailedAsync(string tenantId, AnalysisFailedEvent failedEvent);
 }

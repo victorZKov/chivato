@@ -2,6 +2,8 @@ using Chivato.Application.Commands.Analysis;
 using Chivato.Application.Commands.Pipelines;
 using Chivato.Application.Common;
 using Chivato.Domain.Interfaces;
+using Chivato.Shared.Constants;
+using Chivato.Shared.Models.Messages;
 using MediatR;
 
 namespace Chivato.Application.Handlers.Pipelines;
@@ -11,8 +13,6 @@ public class ScanPipelineHandler : IRequestHandler<ScanPipelineCommand, ScanPipe
     private readonly IPipelineRepository _repository;
     private readonly IMessageQueueService _messageQueue;
     private readonly ICurrentUser _currentUser;
-
-    private const string QueueName = "drift-analysis-requests";
 
     public ScanPipelineHandler(
         IPipelineRepository repository,
@@ -38,16 +38,17 @@ public class ScanPipelineHandler : IRequestHandler<ScanPipelineCommand, ScanPipe
             var correlationId = Guid.NewGuid().ToString();
 
             // Queue analysis message
-            var message = new DriftAnalysisMessage(
-                correlationId,
-                _currentUser.TenantId,
-                request.PipelineId,
-                AnalyzeAll: false,
-                _currentUser.UserId,
-                DateTimeOffset.UtcNow
-            );
+            var message = new IacAnalysisMessage
+            {
+                CorrelationId = correlationId,
+                TenantId = _currentUser.TenantId,
+                PipelineId = request.PipelineId,
+                TriggerType = "AdHoc",
+                IacType = "terraform",
+                InitiatedBy = _currentUser.UserId
+            };
 
-            await _messageQueue.SendAsync(QueueName, message, cancellationToken);
+            await _messageQueue.SendAsync(QueueNames.IacAnalysisRequests, message, cancellationToken);
 
             return new ScanPipelineResult(correlationId, true);
         }

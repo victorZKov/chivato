@@ -1,3 +1,4 @@
+using Chivato.Application.DTOs;
 using MediatR;
 
 namespace Chivato.Application.Queries.Scans;
@@ -12,6 +13,8 @@ public record GetScansPagedQuery(
 ) : IRequest<PagedScanResult>;
 
 public record GetScanByIdQuery(string Id) : IRequest<ScanDetailDto?>;
+
+public record GetScanDriftsQuery(string ScanId) : IRequest<IReadOnlyList<DriftRecordDto>>;
 
 public record GetScanStatsQuery(
     DateTimeOffset? From = null,
@@ -62,11 +65,4 @@ public record ScanStepDto(
     DateTimeOffset? StartedAt,
     DateTimeOffset? CompletedAt,
     string? Message
-);
-
-public record ScanStatsDto(
-    int Total,
-    int Success,
-    int Failed,
-    double? AvgDurationSeconds
 );

@@ -109,15 +109,15 @@ public class StorageService : IStorageService
     public async Task<AdoConnectionEntity?> GetAdoConnectionAsync(string id)
     {
         var tableClient = GetTableClient(AdoConnectionsTable);
-        try
+        
+        // Try to get by ID across any partition (since PartitionKey is usually TenantId)
+        await foreach (var entity in tableClient.QueryAsync<AdoConnectionEntity>(e => e.RowKey == id))
         {
-            var entity = await tableClient.GetEntityAsync<AdoConnectionEntity>("ado", id);
-            return entity.Value;
+            return entity;
         }
-        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
-        {
-            return null;
-        }
+
+        // Fallback or if not found
+        return null;
     }
 
     public async Task SaveAdoConnectionAsync(AdoConnectionEntity connection)
@@ -172,7 +172,7 @@ public class StorageService : IStorageService
     public async Task<PipelineEntity?> GetPipelineByIdAsync(string pipelineId)
     {
         var tableClient = GetTableClient(PipelinesTable);
-        await foreach (var entity in tableClient.QueryAsync<PipelineEntity>(e => e.PipelineId == pipelineId))
+        await foreach (var entity in tableClient.QueryAsync<PipelineEntity>(e => e.PipelineId == pipelineId || e.RowKey == pipelineId))
         {
             return entity;
         }
@@ -240,7 +240,7 @@ public class StorageService : IStorageService
     public async Task SaveDriftRecordAsync(DriftRecordEntity record)
     {
         var tableClient = GetTableClient(DriftRecordsTable);
-        record.PartitionKey = record.DetectedAt.ToString("yyyyMMdd");
+        record.PartitionKey = record.TenantId;
         record.RowKey = string.IsNullOrEmpty(record.RowKey) ? Guid.NewGuid().ToString() : record.RowKey;
         await tableClient.UpsertEntityAsync(record);
     }
@@ -324,7 +324,7 @@ public class StorageService : IStorageService
     public async Task SaveScanLogAsync(ScanLogEntity log)
     {
         var tableClient = GetTableClient(ScanLogsTable);
-        log.PartitionKey = log.StartedAt.ToString("yyyyMMdd");
+        log.PartitionKey = log.TenantId;
         log.RowKey = string.IsNullOrEmpty(log.RowKey) ? Guid.NewGuid().ToString() : log.RowKey;
         await tableClient.UpsertEntityAsync(log);
     }
@@ -334,13 +334,15 @@ public class StorageService : IStorageService
         var scans = await GetScanLogsAsync(fromDate, toDate);
         var scanList = scans.ToList();
 
-        var completedScans = scanList.Where(s => s.Status == "success" || s.Status == "failed").ToList();
+        var completedScans = scanList.Where(s => 
+            s.Status.Equals("Success", StringComparison.OrdinalIgnoreCase) || 
+            s.Status.Equals("Failed", StringComparison.OrdinalIgnoreCase)).ToList();
 
         return new ScanStats
         {
             Total = scanList.Count,
-            Success = scanList.Count(s => s.Status == "success"),
-            Failed = scanList.Count(s => s.Status == "failed"),
+            Success = scanList.Count(s => s.Status.Equals("Success", StringComparison.OrdinalIgnoreCase)),
+            Failed = scanList.Count(s => s.Status.Equals("Failed", StringComparison.OrdinalIgnoreCase)),
             AvgDurationSeconds = completedScans.Count > 0
                 ? (int)completedScans.Average(s => s.DurationSeconds)
                 : 0

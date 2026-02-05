@@ -1,6 +1,30 @@
 namespace Chivato.Application.DTOs;
 
+/// <summary>
+/// Pipeline DTO matching UI expectations
+/// </summary>
 public record PipelineDto(
+    string Id,
+    string PipelineName,
+    string PipelineId,
+    string ProjectName,
+    string OrganizationUrl,
+    string AdoConnectionId,
+    string AdoConnectionName,
+    string AzureConnectionId,
+    string AzureConnectionName,
+    bool IsActive,
+    DateTimeOffset? LastScanAt,
+    int? DriftCount,
+    string Branch,
+    string? RepositoryName,
+    string PlanOnlyParameter
+);
+
+/// <summary>
+/// Legacy DTO format (for backward compatibility)
+/// </summary>
+public record PipelineLegacyDto(
     string Id,
     string Name,
     string Organization,
@@ -18,17 +42,22 @@ public record PipelineDto(
 
 public record PipelineDetailDto(
     string Id,
-    string Name,
-    string Organization,
-    string Project,
-    string RepositoryId,
-    string Branch,
-    string TerraformPath,
-    string SubscriptionId,
-    string ResourceGroup,
-    string Status,
+    string PipelineName,
+    string PipelineId,
+    string ProjectName,
+    string OrganizationUrl,
+    string AdoConnectionId,
+    string AdoConnectionName,
+    string AzureConnectionId,
+    string AzureConnectionName,
+    bool IsActive,
     DateTimeOffset? LastScanAt,
-    int DriftCount,
+    string? LastScanStatus,
+    string? LastScanError,
+    int? DriftCount,
+    string Branch,
+    string? RepositoryName,
+    string PlanOnlyParameter,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     IReadOnlyList<DriftRecordDto>? RecentDrifts,

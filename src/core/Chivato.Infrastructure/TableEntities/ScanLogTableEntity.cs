@@ -48,7 +48,7 @@ public class ScanLogTableEntity : BaseTableEntity
             pipelineId: PipelineId,
             pipelineName: PipelineName,
             correlationId: CorrelationId,
-            status: Enum.Parse<ScanStatus>(Status),
+            status: Enum.Parse<ScanStatus>(Status, ignoreCase: true),
             startedAt: StartedAt,
             completedAt: CompletedAt,
             driftCount: DriftCount,

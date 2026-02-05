@@ -43,6 +43,7 @@ public class AdoConnectionEntity : ITableEntity
     public string RowKey { get; set; } = string.Empty; // GUID
     public string Name { get; set; } = string.Empty;
     public string OrganizationUrl { get; set; } = string.Empty;
+    public string Organization { get; set; } = string.Empty; // Legacy/Short name
     public string AuthType { get; set; } = "PAT"; // PAT or OAuth
     public string KeyVaultSecretName { get; set; } = string.Empty;
     public string Status { get; set; } = "active";
@@ -59,7 +60,9 @@ public class PipelineEntity : ITableEntity
     public string PartitionKey { get; set; } = string.Empty; // Organization ID
     public string RowKey { get; set; } = string.Empty; // Pipeline ID
     public string OrganizationUrl { get; set; } = string.Empty;
-    public string ProjectName { get; set; } = string.Empty;
+    public string Organization { get; set; } = string.Empty; // Legacy/Short name
+    public string ProjectName { get; set; } = string.Empty; // Mapped to Project in Table Storage? No, standard client uses property name.
+    public string Project { get; set; } = string.Empty; // Mapped directly to table column "Project"
     public string PipelineName { get; set; } = string.Empty;
     public string PipelineId { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
@@ -69,7 +72,18 @@ public class PipelineEntity : ITableEntity
     public string? SubscriptionId { get; set; }
     public string? ResourceGroup { get; set; }
     public DateTimeOffset? LastScanAt { get; set; }
+    public string? LastScanStatus { get; set; } // success, failed, running
+    public string? LastScanError { get; set; }
+    public string? LastScanSummary { get; set; } // AI-generated summary
     public int DriftCount { get; set; } = 0;
+
+    // Repository info for drift detection
+    public string? RepositoryName { get; set; }
+    public string? Branch { get; set; } = "main";
+
+    // Pipeline parameter name for plan-only mode (e.g., "PLAN_ONLY", "DRY_RUN")
+    public string? PlanOnlyParameter { get; set; } = "PLAN_ONLY";
+
     public DateTimeOffset? Timestamp { get; set; }
     public ETag ETag { get; set; }
 }
@@ -79,7 +93,7 @@ public class PipelineEntity : ITableEntity
 /// </summary>
 public class DriftRecordEntity : ITableEntity
 {
-    public string PartitionKey { get; set; } = string.Empty; // Date: yyyyMMdd
+    public string PartitionKey { get; set; } = string.Empty; // TenantId
     public string RowKey { get; set; } = string.Empty; // GUID
     public string PipelineId { get; set; } = string.Empty;
     public string PipelineName { get; set; } = string.Empty;
@@ -156,7 +170,7 @@ public class EmailServiceConfigEntity : ITableEntity
 /// </summary>
 public class ScanLogEntity : ITableEntity
 {
-    public string PartitionKey { get; set; } = string.Empty; // Date: yyyyMMdd
+    public string PartitionKey { get; set; } = string.Empty; // TenantId
     public string RowKey { get; set; } = string.Empty; // GUID
     public string PipelineId { get; set; } = string.Empty;
     public string PipelineName { get; set; } = string.Empty;

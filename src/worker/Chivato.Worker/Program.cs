@@ -1,4 +1,5 @@
 using Chivato.Shared.Models.Messages;
+using Chivato.Shared.Models;
 using Chivato.Shared.Services;
 using Chivato.Worker.Handlers;
 using Chivato.Worker.Processors;
@@ -34,6 +35,27 @@ builder.Services.AddSingleton<IAzureResourceService, AzureResourceService>();
 
 // Azure DevOps Service
 builder.Services.AddSingleton<IAdoService, AzureDevOpsService>();
+
+// Terraform Plan Analyzer (AI-powered)
+var openAiEndpoint = builder.Configuration["AZURE_OPENAI_ENDPOINT"] 
+    ?? builder.Configuration["AzureOpenAI:Endpoint"];
+var openAiDeployment = builder.Configuration["AZURE_OPENAI_DEPLOYMENT"] 
+    ?? builder.Configuration["AzureOpenAI:Deployment"]
+    ?? "gpt-4o";
+var openAiApiKey = builder.Configuration["AZURE_OPENAI_API_KEY"] 
+    ?? builder.Configuration["AzureOpenAI:ApiKey"];
+
+if (!string.IsNullOrEmpty(openAiEndpoint) && !string.IsNullOrEmpty(openAiApiKey))
+{
+    Console.WriteLine($"AI Analyzer: Azure OpenAI ({openAiEndpoint})");
+    builder.Services.AddSingleton<ITerraformPlanAnalyzer>(_ => 
+        new TerraformPlanAnalyzer(openAiEndpoint, openAiDeployment, openAiApiKey));
+}
+else
+{
+    Console.WriteLine("AI Analyzer: Mock (no Azure OpenAI configured)");
+    builder.Services.AddSingleton<ITerraformPlanAnalyzer, MockTerraformPlanAnalyzer>();
+}
 
 // SignalR Service (optional - for real-time notifications)
 if (!string.IsNullOrEmpty(signalRConnectionString))
@@ -99,6 +121,14 @@ public class MockKeyVaultService : IKeyVaultService
 {
     public Task<string?> GetSecretAsync(string secretName)
     {
+        // Try environment variable first (normalize key: ado-pat -> ADO_PAT)
+        var envVarName = secretName.Replace("-", "_").ToUpperInvariant();
+        var envValue = Environment.GetEnvironmentVariable(envVarName);
+        if (!string.IsNullOrEmpty(envValue))
+        {
+            return Task.FromResult<string?>(envValue);
+        }
+
         return Task.FromResult<string?>(secretName switch
         {
             "ado-pat" => "mock-ado-pat-token",
@@ -168,6 +198,12 @@ public class MockSignalRService : ISignalRService
     {
         _logger.LogWarning("Mock SignalR -> Tenant {TenantId}: Analysis Failed - {Error}",
             tenantId, failed.Error);
+        return Task.CompletedTask;
+    }
+
+    public Task SendDriftDetectedAsync(string tenantId, DriftAnalysisResult result)
+    {
+        _logger.LogInformation("Mock SignalR -> Tenant {TenantId}: Drift Detected", tenantId);
         return Task.CompletedTask;
     }
 }

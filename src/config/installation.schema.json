@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Chivato Installation Configuration",
+  "description": "Configuration schema for Chivato installation (single-tenant or SaaS)",
+  "type": "object",
+  "required": ["installation", "features", "authentication"],
+  "properties": {
+    "installation": {
+      "type": "object",
+      "description": "Core installation settings",
+      "required": ["mode", "version", "tenantId"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["single-tenant", "multi-tenant"],
+          "description": "Deployment mode: single-tenant for customer installations, multi-tenant for SaaS"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Installation version (semver)"
+        },
+        "tenantId": {
+          "type": "string",
+          "description": "Default tenant ID for single-tenant mode, or 'dynamic' for multi-tenant"
+        },
+        "instanceName": {
+          "type": "string",
+          "description": "Display name for this installation"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "Feature flags for this installation",
+      "properties": {
+        "driftDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable drift detection functionality"
+        },
+        "aiAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI-powered analysis of terraform plans"
+        },
+        "emailNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable email notifications"
+        },
+        "signalRNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time SignalR notifications"
+        },
+        "billing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable billing features (SaaS mode only)"
+        },
+        "multiOrganization": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow multiple ADO organizations per tenant"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "Usage limits for this installation (-1 = unlimited)",
+      "properties": {
+        "maxPipelines": {
+          "type": "integer",
+          "default": -1,
+          "description": "Maximum pipelines allowed (-1 = unlimited)"
+        },
+        "maxScansPerDay": {
+          "type": "integer",
+          "default": -1,
+          "description": "Maximum scans per day (-1 = unlimited)"
+        },
+        "maxConnectionsPerType": {
+          "type": "integer",
+          "default": -1,
+          "description": "Maximum connections per type (ADO, Azure) (-1 = unlimited)"
+        },
+        "retentionDays": {
+          "type": "integer",
+          "default": 90,
+          "description": "Days to retain drift history"
+        }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "description": "White-label branding options",
+      "properties": {
+        "productName": {
+          "type": "string",
+          "default": "Chivato",
+          "description": "Product name to display"
+        },
+        "logoUrl": {
+          "type": ["string", "null"],
+          "description": "URL to custom logo"
+        },
+        "primaryColor": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "default": "#0078d4",
+          "description": "Primary brand color (hex)"
+        },
+        "supportEmail": {
+          "type": ["string", "null"],
+          "description": "Support email to display"
+        }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["AzureAD", "OIDC", "None"],
+          "description": "Authentication provider"
+        },
+        "requireAuthentication": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require authentication for all endpoints"
+        },
+        "allowedRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["Admin", "Viewer"],
+          "description": "Allowed application roles"
+        },
+        "adminRole": {
+          "type": "string",
+          "default": "Admin",
+          "description": "Role with administrative privileges"
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External integration settings",
+      "properties": {
+        "azureDevOps": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "maxOrganizations": { "type": "integer", "default": 10 }
+          }
+        },
+        "azureResources": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "maxSubscriptions": { "type": "integer", "default": 20 }
+          }
+        },
+        "ai": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["AzureOpenAI", "OpenAI", "None"],
+              "default": "AzureOpenAI"
+            },
+            "model": {
+              "type": "string",
+              "default": "gpt-4o"
+            },
+            "maxTokensPerAnalysis": {
+              "type": "integer",
+              "default": 4000
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -5,27 +5,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { driftApi, pipelinesApi, configApi } from "../../services/api";
 import type { DriftStats, DriftRecord, Pipeline, AzureConnection, AdoConnection } from "../../services/api";
 import { AnalysisProgress } from "../common/AnalysisProgress";
+import { MetricCard } from "../common/MetricCard";
+import { formatTimeAgo } from "../../utils/formatTime";
 import "./Dashboard.css";
-
-interface MetricCardProps {
-  title: string;
-  value: number;
-  severity: "critical" | "high" | "medium" | "low" | "ok";
-  icon: string;
-  loading?: boolean;
-}
-
-function MetricCard({ title, value, severity, icon, loading }: MetricCardProps) {
-  return (
-    <div className={`metric-card metric-${severity}`}>
-      <span className="metric-icon">{icon}</span>
-      <div className="metric-content">
-        <span className="metric-value">{loading ? "..." : value}</span>
-        <span className="metric-title">{title}</span>
-      </div>
-    </div>
-  );
-}
 
 interface DriftItemProps {
   id: string;
@@ -54,20 +36,6 @@ function DriftItem({ id, severity, description, pipeline, timestamp }: DriftItem
       <span className="drift-timestamp">{timestamp}</span>
     </div>
   );
-}
-
-function formatTimeAgo(date: string, t: ReturnType<typeof useTranslation>["t"]): string {
-  const now = new Date();
-  const past = new Date(date);
-  const diffMs = now.getTime() - past.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
-  if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
-  if (diffDays < 7) return t("time.daysAgo", { count: diffDays });
-  return t("time.weeksAgo", { count: Math.floor(diffDays / 7) });
 }
 
 export function Dashboard() {
@@ -114,11 +82,11 @@ export function Dashboard() {
   };
 
   const getCredentialStatus = (conn: AzureConnection | AdoConnection) => {
-    if (conn.status === "expired") {
-      return { className: "status-error", text: t("credentials.expired") };
+    if (conn.status === "Error") {
+      return { className: "status-error", text: t("credentials.error") };
     }
-    if (conn.status === "expiring" && conn.expiresAt) {
-      return { className: "status-warning", text: `⚠ ${conn.expiresAt}` };
+    if (conn.status === "Unknown") {
+      return { className: "status-warning", text: t("credentials.unknown") };
     }
     return { className: "status-ok", text: `✓ ${t("common.active")}` };
   };

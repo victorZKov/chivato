@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
+import { useModalContext } from "../../contexts/ModalContext";
 import { configApi } from "../../services/api";
-import { useToast, ToastContainer } from "../common/Toast";
+import { useToast } from "../common/Toast";
 import type {
   AzureConnection,
   AdoConnection,
@@ -21,6 +22,7 @@ type TabType = "connections" | "timer" | "recipients" | "ai";
 export function Configuration() {
   const { t } = useTranslation();
   const { isAdmin } = useRoles();
+  const { confirm } = useModalContext();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("connections");
   const [loading, setLoading] = useState(true);
@@ -78,9 +80,12 @@ export function Configuration() {
         clientId: data.clientId,
         clientSecret: data.clientSecret,
       };
-      await configApi.createAzureConnection(input);
+      console.log("Saving Azure connection:", input);
+      const result = await configApi.createAzureConnection(input);
+      console.log("Azure connection saved:", result);
+      toast.success(t("configuration.connections.connectionSaved"));
       setShowAzureModal(false);
-      loadData();
+      await loadData();
     } catch (err) {
       console.error("Error saving Azure connection:", err);
       toast.error(t("errors.saveFailed"));
@@ -94,10 +99,12 @@ export function Configuration() {
     try {
       const input: CreateAdoConnectionInput = {
         name: data.name,
-        organizationUrl: data.organizationUrl,
-        pat: data.pat,
+        organization: data.organization,
+        project: data.project,
+        patToken: data.patToken,
       };
       await configApi.createAdoConnection(input);
+      toast.success(t("configuration.connections.connectionSaved"));
       setShowAdoModal(false);
       loadData();
     } catch (err) {
@@ -133,7 +140,10 @@ export function Configuration() {
     try {
       const input: CreateEmailRecipientInput = {
         email: data.email,
-        notifyOn: data.notifyOn as "always" | "drift_only" | "weekly",
+        name: data.name || data.email.split("@")[0],
+        minimumSeverity: data.minimumSeverity as "Critical" | "High" | "Medium" | "Low",
+        notifyOnScanComplete: data.notifyOnScanComplete !== "false",
+        notifyOnNewDrift: data.notifyOnNewDrift !== "false",
       };
       await configApi.createEmailRecipient(input);
       setShowRecipientModal(false);
@@ -147,10 +157,17 @@ export function Configuration() {
   };
 
   const handleDeleteAzureConnection = async (id: string) => {
-    if (!window.confirm(t("configuration.confirmDelete.azure"))) return;
+    const confirmed = await confirm({
+      title: t("common.confirm"),
+      message: t("configuration.confirmDelete.azure"),
+      variant: "danger",
+      confirmText: t("common.delete"),
+    });
+    if (!confirmed) return;
     try {
       await configApi.deleteAzureConnection(id);
       setAzureConnections((prev) => prev.filter((c) => c.id !== id));
+      toast.success(t("common.success"));
     } catch (err) {
       console.error("Error deleting Azure connection:", err);
       toast.error(t("errors.deleteFailed"));
@@ -158,10 +175,17 @@ export function Configuration() {
   };
 
   const handleDeleteAdoConnection = async (id: string) => {
-    if (!window.confirm(t("configuration.confirmDelete.ado"))) return;
+    const confirmed = await confirm({
+      title: t("common.confirm"),
+      message: t("configuration.confirmDelete.ado"),
+      variant: "danger",
+      confirmText: t("common.delete"),
+    });
+    if (!confirmed) return;
     try {
       await configApi.deleteAdoConnection(id);
       setAdoConnections((prev) => prev.filter((c) => c.id !== id));
+      toast.success(t("common.success"));
     } catch (err) {
       console.error("Error deleting ADO connection:", err);
       toast.error(t("errors.deleteFailed"));
@@ -169,19 +193,29 @@ export function Configuration() {
   };
 
   const handleDeleteRecipient = async (id: string) => {
-    if (!window.confirm(t("configuration.confirmDelete.recipient"))) return;
+    const confirmed = await confirm({
+      title: t("common.confirm"),
+      message: t("configuration.confirmDelete.recipient"),
+      variant: "danger",
+      confirmText: t("common.delete"),
+    });
+    if (!confirmed) return;
     try {
       await configApi.deleteEmailRecipient(id);
       setEmailRecipients((prev) => prev.filter((r) => r.id !== id));
+      toast.success(t("common.success"));
     } catch (err) {
       console.error("Error deleting recipient:", err);
       toast.error(t("errors.deleteFailed"));
     }
   };
 
-  const handleToggleRecipient = async (id: string, currentActive: boolean) => {
+  const handleToggleRecipient = async (id: string) => {
     try {
-      await configApi.updateEmailRecipient(id, { notifyOn: currentActive ? "drift_only" : "always" });
+      // For now just toggle locally - a proper PUT endpoint would be needed
+      const recipient = emailRecipients.find((r) => r.id === id);
+      if (!recipient) return;
+      // Toggle active state (API would need to support this field)
       setEmailRecipients((prev) =>
         prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r))
       );
@@ -214,10 +248,14 @@ export function Configuration() {
       if (result.success) {
         toast.success(t("configuration.connections.connectionSuccess"));
       } else {
-        toast.error(t("configuration.connections.connectionFailed"));
+        const errorMsg = result.error || t("configuration.connections.connectionFailed");
+        toast.error(errorMsg);
       }
+      // Reload to update status
+      await loadData();
     } catch (err) {
-      toast.error(t("configuration.connections.connectionFailed"));
+      const errorMsg = err instanceof Error ? err.message : t("configuration.connections.connectionFailed");
+      toast.error(errorMsg);
     }
   };
 
@@ -227,10 +265,14 @@ export function Configuration() {
       if (result.success) {
         toast.success(t("configuration.connections.connectionSuccess"));
       } else {
-        toast.error(t("configuration.connections.connectionFailed"));
+        const errorMsg = result.error || t("configuration.connections.connectionFailed");
+        toast.error(errorMsg);
       }
+      // Reload to update status
+      await loadData();
     } catch (err) {
-      toast.error(t("configuration.connections.connectionFailed"));
+      const errorMsg = err instanceof Error ? err.message : t("configuration.connections.connectionFailed");
+      toast.error(errorMsg);
     }
   };
 
@@ -247,25 +289,40 @@ export function Configuration() {
     }
   };
 
-  const getStatusText = (status: "active" | "expiring" | "expired", expiresAt?: string) => {
+  const getAzureStatusText = (status: "Connected" | "Error" | "Unknown") => {
     switch (status) {
-      case "active":
+      case "Connected":
         return `✓ ${t("configuration.status.active")}`;
-      case "expiring":
-        return `⚠ ${t("configuration.status.expiring", { date: expiresAt })}`;
-      case "expired":
-        return `✕ ${t("configuration.status.expired")}`;
+      case "Error":
+        return `✕ ${t("configuration.status.error")}`;
+      case "Unknown":
+        return `? ${t("configuration.status.unknown")}`;
     }
   };
 
-  const getNotifyOnText = (notifyOn: "always" | "drift_only" | "weekly") => {
-    switch (notifyOn) {
-      case "always":
-        return t("configuration.recipients.notifyOn.always");
-      case "drift_only":
-        return t("configuration.recipients.notifyOn.driftOnly");
-      case "weekly":
-        return t("configuration.recipients.notifyOn.weekly");
+  const getAdoStatusText = (status: "Connected" | "Error" | "Unknown") => {
+    switch (status) {
+      case "Connected":
+        return `✓ ${t("configuration.status.active")}`;
+      case "Error":
+        return `✕ ${t("configuration.status.error")}`;
+      case "Unknown":
+        return `? ${t("configuration.status.unknown")}`;
+    }
+  };
+
+  const getSeverityText = (severity: "Critical" | "High" | "Medium" | "Low") => {
+    switch (severity) {
+      case "Critical":
+        return t("configuration.recipients.severity.critical");
+      case "High":
+        return t("configuration.recipients.severity.high");
+      case "Medium":
+        return t("configuration.recipients.severity.medium");
+      case "Low":
+        return t("configuration.recipients.severity.low");
+      default:
+        return severity;
     }
   };
 
@@ -284,7 +341,6 @@ export function Configuration() {
 
   return (
     <div className="configuration">
-      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
       <div className="config-header">
         <h1>{t("configuration.title")}</h1>
         <p className="text-muted">{t("configuration.subtitle")}</p>
@@ -350,8 +406,8 @@ export function Configuration() {
                         <span className="connection-detail">{t("configuration.connections.client")}: {conn.clientId}</span>
                       </div>
                       <div className="connection-status">
-                        <span className={`status-badge status-${conn.status}`}>
-                          {getStatusText(conn.status, conn.expiresAt)}
+                        <span className={`status-badge status-${conn.status.toLowerCase()}`}>
+                          {getAzureStatusText(conn.status)}
                         </span>
                       </div>
                       <div className="connection-actions">
@@ -391,12 +447,12 @@ export function Configuration() {
                     <div key={conn.id} className="connection-card">
                       <div className="connection-info">
                         <span className="connection-name">{conn.name}</span>
-                        <span className="connection-detail">{conn.organizationUrl}</span>
-                        <span className="connection-detail">{t("configuration.connections.auth")}: {conn.authType}</span>
+                        <span className="connection-detail">{t("configuration.connections.organization")}: {conn.organization}</span>
+                        <span className="connection-detail">{t("configuration.connections.project")}: {conn.project}</span>
                       </div>
                       <div className="connection-status">
-                        <span className={`status-badge status-${conn.status}`}>
-                          {getStatusText(conn.status, conn.expiresAt)}
+                        <span className={`status-badge status-${conn.status.toLowerCase()}`}>
+                          {getAdoStatusText(conn.status)}
                         </span>
                       </div>
                       <div className="connection-actions">
@@ -492,17 +548,18 @@ export function Configuration() {
                 {emailRecipients.map((recipient) => (
                   <div key={recipient.id} className={`recipient-card ${!recipient.isActive ? "inactive" : ""}`}>
                     <div className="recipient-info">
+                      <span className="recipient-name">{recipient.name}</span>
                       <span className="recipient-email">{recipient.email}</span>
                       <span className="recipient-setting">
-                        {getNotifyOnText(recipient.notifyOn)}
+                        {t("configuration.recipients.minSeverity")}: {getSeverityText(recipient.minimumSeverity)}
                       </span>
                     </div>
                     <div className="recipient-actions">
                       <button
                         className="btn btn-ghost btn-sm"
-                        onClick={() => handleToggleRecipient(recipient.id, recipient.isActive)}
+                        onClick={() => handleToggleRecipient(recipient.id)}
                       >
-                        {recipient.isActive ? t("common.disabled") : t("common.enabled")}
+                        {recipient.isActive ? t("common.disable") : t("common.enable")}
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
@@ -601,8 +658,9 @@ export function Configuration() {
           saving={saving}
           fields={[
             { name: "name", label: t("configuration.fields.name"), type: "text", required: true },
-            { name: "organizationUrl", label: t("configuration.fields.organizationUrl"), type: "text", required: true, placeholder: "https://dev.azure.com/myorg" },
-            { name: "pat", label: t("configuration.fields.pat"), type: "password", required: true },
+            { name: "organization", label: t("configuration.fields.organization"), type: "text", required: true, placeholder: "myorg" },
+            { name: "project", label: t("configuration.fields.project"), type: "text", required: true, placeholder: "MyProject" },
+            { name: "patToken", label: t("configuration.fields.pat"), type: "password", required: true },
           ]}
           t={t}
         />
@@ -616,10 +674,12 @@ export function Configuration() {
           saving={saving}
           fields={[
             { name: "email", label: "Email", type: "email", required: true },
-            { name: "notifyOn", label: t("configuration.recipients.notifyOn.label"), type: "select", required: true, options: [
-              { value: "always", label: t("configuration.recipients.notifyOn.always") },
-              { value: "drift_only", label: t("configuration.recipients.notifyOn.driftOnly") },
-              { value: "weekly", label: t("configuration.recipients.notifyOn.weekly") },
+            { name: "name", label: t("configuration.fields.name"), type: "text", required: false, placeholder: t("configuration.recipients.namePlaceholder") },
+            { name: "minimumSeverity", label: t("configuration.recipients.minSeverity"), type: "select", required: true, options: [
+              { value: "Critical", label: t("configuration.recipients.severity.critical") },
+              { value: "High", label: t("configuration.recipients.severity.high") },
+              { value: "Medium", label: t("configuration.recipients.severity.medium") },
+              { value: "Low", label: t("configuration.recipients.severity.low") },
             ]},
           ]}
           t={t}

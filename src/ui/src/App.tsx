@@ -14,6 +14,8 @@ import { DriftHistory } from "./components/DriftHistory/DriftHistory";
 import { ScanLogs } from "./components/ScanLogs/ScanLogs";
 import { Credentials } from "./components/Credentials/Credentials";
 import { NotificationsProvider } from "./contexts/NotificationsContext";
+import { ModalProvider } from "./contexts/ModalContext";
+import { GlobalToastContainer } from "./components/common/Toast";
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
@@ -110,13 +112,20 @@ function Router() {
 
 function AuthenticatedApp() {
   const { accounts } = useMsal();
-  const tenantId = accounts[0]?.tenantId;
+  // Use dev tenant ID in development, otherwise use the authenticated user's tenant
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost';
+  const tenantId = isDev 
+    ? 'dev-tenant-00000000-0000-0000-0000-000000000000'
+    : accounts[0]?.tenantId;
 
   return (
     <NotificationsProvider tenantId={tenantId} autoConnect={true}>
-      <Layout>
-        <Router />
-      </Layout>
+      <ModalProvider>
+        <Layout>
+          <Router />
+        </Layout>
+        <GlobalToastContainer />
+      </ModalProvider>
     </NotificationsProvider>
   );
 }

@@ -78,7 +78,47 @@ public class AnalysisController : ControllerBase
             message = "Analysis request for all pipelines has been queued"
         });
     }
+
+    /// <summary>
+    /// Trigger IaC analysis (terraform plan) for a specific pipeline
+    /// </summary>
+    [HttpPost("iac/trigger")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TriggerIacAnalysis([FromBody] TriggerIacAnalysisRequest request)
+    {
+        if (string.IsNullOrEmpty(request?.PipelineId))
+        {
+            return BadRequest(new { error = "PipelineId is required for IaC analysis" });
+        }
+
+        var command = new TriggerIacAnalysisCommand(
+            PipelineId: request.PipelineId,
+            IacType: request.IacType ?? "terraform"
+        );
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            if (result.Error?.Contains("not found") == true)
+                return NotFound(new { error = result.Error });
+
+            return BadRequest(new { error = result.Error });
+        }
+
+        _logger.LogInformation("Triggered IaC analysis: {CorrelationId}", result.CorrelationId);
+
+        return Accepted(new
+        {
+            correlationId = result.CorrelationId,
+            status = "queued",
+            message = "IaC analysis request has been queued for processing"
+        });
+    }
 }
 
 // Request DTOs
 public record TriggerAnalysisRequest(string? PipelineId);
+public record TriggerIacAnalysisRequest(string PipelineId, string? IacType = "terraform");

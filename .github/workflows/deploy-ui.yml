@@ -1,6 +1,7 @@
 name: Deploy UI to Azure Static Web Apps
 
 on:
+  workflow_dispatch:  # Allow manual trigger
   push:
     branches:
       - main

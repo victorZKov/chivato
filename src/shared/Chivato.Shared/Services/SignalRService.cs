@@ -1,5 +1,6 @@
 using Microsoft.Azure.SignalR.Management;
 using Chivato.Shared.Models.Messages;
+using Chivato.Shared.Models;
 
 namespace Chivato.Shared.Services;
 
@@ -57,6 +58,11 @@ public class SignalRService : ISignalRService, IAsyncDisposable
     public async Task SendAnalysisFailedAsync(string tenantId, AnalysisFailedEvent failed)
     {
         await SendToTenantAsync(tenantId, "analysisFailed", failed);
+    }
+
+    public async Task SendDriftDetectedAsync(string tenantId, DriftAnalysisResult result)
+    {
+        await SendToTenantAsync(tenantId, "driftDetected", result);
     }
 
     public async ValueTask DisposeAsync()

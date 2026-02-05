@@ -103,11 +103,6 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title || t("modal.confirm.title")} size="sm" closeOnOverlay={false}>
       <div className="confirm-dialog">
@@ -116,7 +111,7 @@ export function ConfirmDialog({
           <button className="btn btn-ghost" onClick={onClose}>
             {cancelText || t("common.cancel")}
           </button>
-          <button className={`btn btn-${variant === "danger" ? "danger" : "primary"}`} onClick={handleConfirm}>
+          <button className={`btn btn-${variant === "danger" ? "danger" : "primary"}`} onClick={onConfirm}>
             {confirmText || t("common.confirm")}
           </button>
         </div>

@@ -1,6 +1,8 @@
 using Chivato.Application.Common;
+using Chivato.Application.DTOs;
 using Chivato.Application.Queries.Scans;
 using Chivato.Domain.Interfaces;
+using Chivato.Domain.ValueObjects;
 using MediatR;
 
 namespace Chivato.Application.Handlers.Scans;
@@ -107,5 +109,54 @@ public class GetScanStatsHandler : IRequestHandler<GetScanStatsQuery, ScanStatsD
             Failed: stats.Failed,
             AvgDurationSeconds: stats.AvgDurationSeconds
         );
+    }
+}
+
+public class GetScanDriftsHandler : IRequestHandler<GetScanDriftsQuery, IReadOnlyList<DriftRecordDto>>
+{
+    private readonly IScanLogRepository _scanRepository;
+    private readonly IDriftRecordRepository _driftRepository;
+    private readonly ICurrentUser _currentUser;
+
+    public GetScanDriftsHandler(
+        IScanLogRepository scanRepository,
+        IDriftRecordRepository driftRepository,
+        ICurrentUser currentUser)
+    {
+        _scanRepository = scanRepository;
+        _driftRepository = driftRepository;
+        _currentUser = currentUser;
+    }
+
+    public async Task<IReadOnlyList<DriftRecordDto>> Handle(GetScanDriftsQuery request, CancellationToken cancellationToken)
+    {
+        var scan = await _scanRepository.GetByIdAsync(_currentUser.TenantId, request.ScanId, cancellationToken);
+
+        if (scan == null || string.IsNullOrEmpty(scan.CorrelationId))
+            return [];
+
+        var drifts = await _driftRepository.GetByCorrelationIdAsync(
+            _currentUser.TenantId,
+            scan.CorrelationId,
+            cancellationToken
+        );
+
+        return drifts.Select(d => new DriftRecordDto(
+            d.Id,
+            d.PipelineId,
+            string.Empty,
+            d.Severity.ToDisplayString(),
+            d.ResourceId,
+            d.ResourceType,
+            d.ResourceName,
+            d.Property,
+            d.ExpectedValue,
+            d.ActualValue,
+            d.Description,
+            d.Recommendation,
+            d.Category,
+            d.DetectedAt,
+            d.Status.ToString()
+        )).ToList();
     }
 }

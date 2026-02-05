@@ -21,6 +21,9 @@ export interface AnalysisCompletedEvent {
   pipelineId: string;
   pipelineName: string;
   tenantId: string;
+  status?: string;
+  driftCount?: number;
+  overallRisk?: string;
   summary: {
     totalDrifts: number;
     critical: number;
@@ -57,10 +60,10 @@ interface ActiveAnalysis {
   startedAt: Date;
 }
 
-interface Notification {
+export interface Notification {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
-  title: string;
+  title?: string;
   message: string;
   timestamp: Date;
   read: boolean;
@@ -80,9 +83,19 @@ interface NotificationsContextValue {
   // Notifications
   notifications: Notification[];
   unreadCount: number;
+  addNotification: (message: string, type: Notification['type'], title?: string) => string;
+  removeNotification: (id: string) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
+
+  // Toast helpers
+  toast: {
+    success: (message: string) => string;
+    error: (message: string) => string;
+    warning: (message: string) => string;
+    info: (message: string) => string;
+  };
 
   // Event subscriptions
   onProgress: (callback: (event: AnalysisProgressEvent) => void) => () => void;
@@ -194,12 +207,26 @@ export function NotificationsProvider({
         return next;
       });
 
+      // Format error message - truncate if too long and clean up
+      let errorMessage = event.error || 'Unknown error';
+      // If error contains "Pipeline failed with result:", extract just that part
+      if (errorMessage.includes('Pipeline failed with result:')) {
+        const match = errorMessage.match(/Pipeline failed with result: (\w+)/);
+        if (match) {
+          errorMessage = `Pipeline failed with result: ${match[1]}. Check the pipeline in Azure DevOps for details.`;
+        }
+      }
+      // Truncate very long messages
+      if (errorMessage.length > 200) {
+        errorMessage = errorMessage.substring(0, 200) + '...';
+      }
+
       // Add notification
       const notification: Notification = {
         id: `failed-${event.correlationId}`,
         type: 'error',
         title: 'Analysis Failed',
-        message: `${event.pipelineName}: ${event.error}`,
+        message: event.pipelineName ? `${event.pipelineName}: ${errorMessage}` : errorMessage,
         timestamp: new Date(event.timestamp),
         read: false,
         data: event,
@@ -217,6 +244,24 @@ export function NotificationsProvider({
     };
   }, [connection, on, off, failedCallbacks]);
 
+  const addNotification = useCallback((message: string, type: Notification['type'], title?: string) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const notification: Notification = {
+      id,
+      type,
+      title,
+      message,
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications((prev) => [notification, ...prev].slice(0, 50));
+    return id;
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -230,6 +275,13 @@ export function NotificationsProvider({
   const clearNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
+
+  const toast = {
+    success: useCallback((message: string) => addNotification(message, 'success'), [addNotification]),
+    error: useCallback((message: string) => addNotification(message, 'error'), [addNotification]),
+    warning: useCallback((message: string) => addNotification(message, 'warning'), [addNotification]),
+    info: useCallback((message: string) => addNotification(message, 'info'), [addNotification]),
+  };
 
   const onProgress = useCallback((callback: (event: AnalysisProgressEvent) => void) => {
     setProgressCallbacks((prev) => new Set(prev).add(callback));
@@ -274,9 +326,12 @@ export function NotificationsProvider({
     activeAnalyses,
     notifications,
     unreadCount,
+    addNotification,
+    removeNotification,
     markAsRead,
     markAllAsRead,
     clearNotifications,
+    toast,
     onProgress,
     onCompleted,
     onFailed,

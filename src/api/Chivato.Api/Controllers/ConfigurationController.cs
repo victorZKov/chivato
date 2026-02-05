@@ -94,6 +94,39 @@ public class ConfigurationController : ControllerBase
         return CreatedAtAction(nameof(GetAzureConnections), new { id = result.Id }, result);
     }
 
+    [HttpPost("azure/{id}/test")]
+    [ProducesResponseType(typeof(TestConnectionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestAzureConnection(string id)
+    {
+        var command = new TestAzureConnectionCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (result.ErrorMessage == "Connection not found")
+            return NotFound(new { error = result.ErrorMessage });
+
+        return Ok(new { success = result.Success, status = result.Status, error = result.ErrorMessage });
+    }
+
+    [HttpDelete("azure/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAzureConnection(string id)
+    {
+        var command = new DeleteAzureConnectionCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            if (result.ErrorMessage == "Connection not found")
+                return NotFound(new { error = result.ErrorMessage });
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        _logger.LogInformation("Deleted Azure connection: {Id}", id);
+        return NoContent();
+    }
+
     // ADO Connections
     [HttpGet("ado")]
     [ProducesResponseType(typeof(IEnumerable<AdoConnectionDto>), StatusCodes.Status200OK)]
@@ -124,6 +157,39 @@ public class ConfigurationController : ControllerBase
         _logger.LogInformation("Created ADO connection: {Name}", request.Name);
 
         return CreatedAtAction(nameof(GetAdoConnections), new { id = result.Id }, result);
+    }
+
+    [HttpPost("ado/{id}/test")]
+    [ProducesResponseType(typeof(TestConnectionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestAdoConnection(string id)
+    {
+        var command = new TestAdoConnectionCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (result.ErrorMessage == "Connection not found")
+            return NotFound(new { error = result.ErrorMessage });
+
+        return Ok(new { success = result.Success, status = result.Status, error = result.ErrorMessage });
+    }
+
+    [HttpDelete("ado/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAdoConnection(string id)
+    {
+        var command = new DeleteAdoConnectionCommand(id);
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            if (result.ErrorMessage == "Connection not found")
+                return NotFound(new { error = result.ErrorMessage });
+            return BadRequest(new { error = result.ErrorMessage });
+        }
+
+        _logger.LogInformation("Deleted ADO connection: {Id}", id);
+        return NoContent();
     }
 
     // Email Recipients
@@ -172,6 +238,47 @@ public class ConfigurationController : ControllerBase
 
         return NoContent();
     }
+
+    // AI Connection (placeholder - stores in memory for now)
+    private static AiConnectionDto? _aiConnection;
+
+    [HttpGet("ai")]
+    [ProducesResponseType(typeof(AiConnectionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public IActionResult GetAiConnection()
+    {
+        if (_aiConnection == null)
+            return NoContent();
+
+        return Ok(_aiConnection);
+    }
+
+    [HttpPost("ai")]
+    [ProducesResponseType(typeof(AiConnectionDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult SaveAiConnection([FromBody] CreateAiConnectionRequest request)
+    {
+        _aiConnection = new AiConnectionDto(
+            Id: Guid.NewGuid().ToString(),
+            Name: request.Name,
+            Endpoint: request.Endpoint,
+            DeploymentName: request.DeploymentName,
+            Status: "active"
+        );
+
+        _logger.LogInformation("Saved AI connection: {Name}", request.Name);
+
+        return CreatedAtAction(nameof(GetAiConnection), _aiConnection);
+    }
+
+    [HttpPost("ai/test")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public IActionResult TestAiConnection()
+    {
+        // For now, just return success if we have a connection configured
+        var success = _aiConnection != null;
+        return Ok(new { success });
+    }
 }
 
 // Request DTOs
@@ -202,4 +309,19 @@ public record AddRecipientRequest(
     string Email,
     string Name,
     string? MinimumSeverity
+);
+
+public record CreateAiConnectionRequest(
+    string Name,
+    string Endpoint,
+    string DeploymentName,
+    string ApiKey
+);
+
+public record AiConnectionDto(
+    string Id,
+    string Name,
+    string Endpoint,
+    string DeploymentName,
+    string Status
 );

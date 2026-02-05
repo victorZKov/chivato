@@ -136,10 +136,10 @@ export function DriftHistory() {
         <h1>{t('drift.title')}</h1>
         <div className="header-actions">
           <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
-            {t('common.exportCsv')}
+            {t('drift.export.csv')}
           </button>
           <button className="btn btn-secondary" onClick={() => handleExport('json')}>
-            {t('common.exportJson')}
+            {t('drift.export.json')}
           </button>
         </div>
       </header>
@@ -148,23 +148,23 @@ export function DriftHistory() {
         <div className="stats-cards">
           <div className="stat-card total">
             <span className="stat-value">{stats.total}</span>
-            <span className="stat-label">{t('drift.totalDrifts')}</span>
+            <span className="stat-label">{t('drift.stats.total')}</span>
           </div>
           <div className="stat-card critical">
             <span className="stat-value">{stats.critical}</span>
-            <span className="stat-label">{t('drift.critical')}</span>
+            <span className="stat-label">{t('drift.stats.critical')}</span>
           </div>
           <div className="stat-card high">
             <span className="stat-value">{stats.high}</span>
-            <span className="stat-label">{t('drift.high')}</span>
+            <span className="stat-label">{t('drift.stats.high')}</span>
           </div>
           <div className="stat-card medium">
             <span className="stat-value">{stats.medium}</span>
-            <span className="stat-label">{t('drift.medium')}</span>
+            <span className="stat-label">{t('drift.stats.medium')}</span>
           </div>
           <div className="stat-card low">
             <span className="stat-value">{stats.low}</span>
-            <span className="stat-label">{t('drift.low')}</span>
+            <span className="stat-label">{t('drift.stats.low')}</span>
           </div>
         </div>
       )}
@@ -174,24 +174,24 @@ export function DriftHistory() {
           value={filters.severity}
           onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
         >
-          <option value="">{t('drift.allSeverities')}</option>
-          <option value="critical">{t('drift.critical')}</option>
-          <option value="high">{t('drift.high')}</option>
-          <option value="medium">{t('drift.medium')}</option>
-          <option value="low">{t('drift.low')}</option>
+          <option value="">{t('drift.filters.allSeverities')}</option>
+          <option value="critical">{t('severity.critical')}</option>
+          <option value="high">{t('severity.high')}</option>
+          <option value="medium">{t('severity.medium')}</option>
+          <option value="low">{t('severity.low')}</option>
         </select>
 
         <input
           type="date"
           value={filters.from}
           onChange={(e) => setFilters({ ...filters, from: e.target.value })}
-          placeholder={t('common.from')}
+          placeholder={t('drift.filters.from')}
         />
         <input
           type="date"
           value={filters.to}
           onChange={(e) => setFilters({ ...filters, to: e.target.value })}
-          placeholder={t('common.to')}
+          placeholder={t('drift.filters.to')}
         />
       </div>
 
@@ -202,12 +202,12 @@ export function DriftHistory() {
           <table>
             <thead>
               <tr>
-                <th>{t('drift.severity')}</th>
-                <th>{t('drift.pipeline')}</th>
-                <th>{t('drift.resource')}</th>
-                <th>{t('drift.property')}</th>
-                <th>{t('drift.category')}</th>
-                <th>{t('drift.detectedAt')}</th>
+                <th>{t('drift.table.severity')}</th>
+                <th>{t('drift.table.pipeline')}</th>
+                <th>{t('drift.table.resource')}</th>
+                <th>{t('drift.table.property')}</th>
+                <th>{t('drift.detail.category')}</th>
+                <th>{t('drift.table.detectedAt')}</th>
               </tr>
             </thead>
             <tbody>
@@ -233,11 +233,11 @@ export function DriftHistory() {
 
           <div className="pagination">
             <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-              {t('common.previous')}
+              {t('pagination.previous')}
             </button>
-            <span>{t('common.pageOf', { page, total: totalPages })}</span>
+            <span>{t('pagination.page')} {page} {t('pagination.of')} {totalPages}</span>
             <button disabled={page === totalPages} onClick={() => setPage(page + 1)}>
-              {t('common.next')}
+              {t('pagination.next')}
             </button>
           </div>
         </div>
@@ -247,12 +247,12 @@ export function DriftHistory() {
         <div className="modal-overlay" onClick={() => setSelectedDrift(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{t('drift.details')}</h2>
+              <h2>{t('drift.detail.title')}</h2>
               <button className="close-btn" onClick={() => setSelectedDrift(null)}>&times;</button>
             </div>
             <div className="modal-body">
               <div className="detail-row">
-                <label>{t('drift.severity')}:</label>
+                <label>{t('drift.table.severity')}:</label>
                 <span
                   className="severity-badge"
                   style={{ backgroundColor: getSeverityColor(selectedDrift.severity) }}
@@ -261,27 +261,27 @@ export function DriftHistory() {
                 </span>
               </div>
               <div className="detail-row">
-                <label>{t('drift.resource')}:</label>
+                <label>{t('drift.table.resource')}:</label>
                 <span>{selectedDrift.resourceName} ({selectedDrift.resourceType})</span>
               </div>
               <div className="detail-row">
-                <label>{t('drift.property')}:</label>
+                <label>{t('drift.table.property')}:</label>
                 <span>{selectedDrift.property}</span>
               </div>
               <div className="detail-row">
-                <label>{t('drift.expected')}:</label>
+                <label>{t('drift.table.expected')}:</label>
                 <code>{selectedDrift.expectedValue}</code>
               </div>
               <div className="detail-row">
-                <label>{t('drift.actual')}:</label>
+                <label>{t('drift.table.actual')}:</label>
                 <code>{selectedDrift.actualValue}</code>
               </div>
               <div className="detail-row">
-                <label>{t('drift.description')}:</label>
+                <label>{t('drift.detail.description')}:</label>
                 <p>{selectedDrift.description}</p>
               </div>
               <div className="detail-row">
-                <label>{t('drift.recommendation')}:</label>
+                <label>{t('drift.detail.recommendation')}:</label>
                 <p>{selectedDrift.recommendation}</p>
               </div>
             </div>

@@ -93,9 +93,9 @@ public class ScanLogRepository : IScanLogRepository
         await foreach (var entity in query)
         {
             total++;
-            if (entity.Status == "Success")
+            if (entity.Status.Equals("Success", StringComparison.OrdinalIgnoreCase))
                 success++;
-            else if (entity.Status == "Failed")
+            else if (entity.Status.Equals("Failed", StringComparison.OrdinalIgnoreCase))
                 failed++;
 
             totalDuration += entity.DurationSeconds;

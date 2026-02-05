@@ -132,6 +132,7 @@ public class DriftRecord : BaseEntity
 
 public enum DriftStatus
 {
+    New,
     Open,
     Resolved,
     Ignored

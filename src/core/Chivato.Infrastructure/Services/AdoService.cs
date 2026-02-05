@@ -157,6 +157,97 @@ public class AdoService : IAdoService
         }
     }
 
+    public async Task<IReadOnlyList<AdoProject>> GetProjectsAsync(
+        string organization,
+        string patToken,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"https://dev.azure.com/{organization}/_apis/projects?api-version=7.0";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(Encoding.ASCII.GetBytes($":{patToken}")));
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = await _httpClient.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get projects from ADO: {StatusCode}", response.StatusCode);
+                return Array.Empty<AdoProject>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            var doc = JsonDocument.Parse(json);
+
+            var projects = new List<AdoProject>();
+            if (doc.RootElement.TryGetProperty("value", out var value))
+            {
+                foreach (var item in value.EnumerateArray())
+                {
+                    var id = item.GetProperty("id").GetString() ?? "";
+                    var name = item.GetProperty("name").GetString() ?? "";
+                    projects.Add(new AdoProject(id, name));
+                }
+            }
+
+            return projects;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting projects from ADO organization {Organization}", organization);
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<AdoPipeline>> GetPipelinesAsync(
+        string organization,
+        string project,
+        string patToken,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=7.0";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(Encoding.ASCII.GetBytes($":{patToken}")));
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = await _httpClient.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get pipelines from ADO: {StatusCode}", response.StatusCode);
+                return Array.Empty<AdoPipeline>();
+            }
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            var doc = JsonDocument.Parse(json);
+
+            var pipelines = new List<AdoPipeline>();
+            if (doc.RootElement.TryGetProperty("value", out var value))
+            {
+                foreach (var item in value.EnumerateArray())
+                {
+                    var id = item.GetProperty("id").GetInt32().ToString();
+                    var name = item.GetProperty("name").GetString() ?? "";
+                    pipelines.Add(new AdoPipeline(id, name));
+                }
+            }
+
+            return pipelines;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting pipelines from ADO project {Project}", project);
+            throw;
+        }
+    }
+
     private async Task<string?> GetPatForOrganizationAsync(string organization, CancellationToken ct)
     {
         // Note: In a real implementation, we'd need to get the connection by tenantId + organization

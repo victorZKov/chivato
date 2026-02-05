@@ -2,12 +2,18 @@ using Chivato.Api.Services;
 using Chivato.Application;
 using Chivato.Application.Common;
 using Chivato.Infrastructure.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
@@ -67,6 +73,13 @@ builder.Services.AddInfrastructure(storageConnectionString, serviceBusConnection
 // Current User (from HttpContext)
 // ========================================
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// Disable automatic 400 for invalid model state — validation is handled by FluentValidation in CQRS handlers
+// PostConfigure ensures this runs AFTER any framework defaults set by AddControllers()
+builder.Services.PostConfigure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 
 // Health checks
 builder.Services.AddHealthChecks();

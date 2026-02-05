@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useRoles } from "../../hooks/useRoles";
 import { useModalContext } from "../../contexts/ModalContext";
+import { useNavigate } from "../../hooks/useNavigate";
+import { useNotifications } from "../../contexts/NotificationsContext";
 import { Modal } from "../common/Modal";
 import { pipelinesApi, configApi } from "../../services/api";
+import { formatTimeAgo } from "../../utils/formatTime";
 import type { Pipeline, AzureConnection, AdoConnection } from "../../services/api";
 import "./Pipelines.css";
 
@@ -20,6 +23,8 @@ export function Pipelines() {
   const { t } = useTranslation();
   const { isAdmin } = useRoles();
   const modal = useModalContext();
+  const navigate = useNavigate();
+  const { activeAnalyses, onProgress, onCompleted, onFailed } = useNotifications();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [adoConnections, setAdoConnections] = useState<AdoConnection[]>([]);
   const [azureConnections, setAzureConnections] = useState<AzureConnection[]>([]);
@@ -41,6 +46,51 @@ export function Pipelines() {
     loadData();
   }, []);
 
+  // Subscribe to SignalR events to update pipeline status in real-time
+  useEffect(() => {
+    const handleProgress = (event: { pipelineId: string; stage: string }) => {
+      // Update pipeline to show Running status
+      setPipelines(prev => prev.map(p => 
+        p.id === event.pipelineId 
+          ? { ...p, lastScanStatus: "Running" }
+          : p
+      ));
+    };
+
+    const handleCompleted = (event: { pipelineId?: string; status?: string; driftCount?: number }) => {
+      if (!event.pipelineId) return;
+      // Update pipeline with completed status
+      setPipelines(prev => prev.map(p => 
+        p.id === event.pipelineId 
+          ? { 
+              ...p, 
+              lastScanStatus: event.status || "Success",
+              lastScanAt: new Date().toISOString(),
+              driftCount: event.driftCount ?? p.driftCount
+            }
+          : p
+      ));
+    };
+
+    const handleFailed = (event: { pipelineId: string }) => {
+      setPipelines(prev => prev.map(p => 
+        p.id === event.pipelineId 
+          ? { ...p, lastScanStatus: "Failed" }
+          : p
+      ));
+    };
+
+    const unsubProgress = onProgress(handleProgress);
+    const unsubCompleted = onCompleted(handleCompleted);
+    const unsubFailed = onFailed(handleFailed);
+
+    return () => {
+      unsubProgress();
+      unsubCompleted();
+      unsubFailed();
+    };
+  }, [onProgress, onCompleted, onFailed]);
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -50,7 +100,23 @@ export function Pipelines() {
         configApi.getAdoConnections(),
         configApi.getAzureConnections(),
       ]);
-      setPipelines(pipelinesData);
+      
+      // Sort pipelines: by drifts (desc), then by lastScanAt (desc)
+      const sortedPipelines = [...pipelinesData].sort((a, b) => {
+        // First, sort by drift count (descending)
+        const driftsA = a.driftCount ?? 0;
+        const driftsB = b.driftCount ?? 0;
+        if (driftsB !== driftsA) {
+          return driftsB - driftsA;
+        }
+        
+        // Then, sort by last scan date (descending - most recent first)
+        const dateA = a.lastScanAt ? new Date(a.lastScanAt).getTime() : 0;
+        const dateB = b.lastScanAt ? new Date(b.lastScanAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      setPipelines(sortedPipelines);
       setAdoConnections(adoData);
       setAzureConnections(azureData);
     } catch (err) {
@@ -140,7 +206,11 @@ export function Pipelines() {
 
   const handleToggleActive = async (pipelineId: string, isActive: boolean) => {
     try {
-      await pipelinesApi.updatePipeline(pipelineId, { isActive: !isActive });
+      if (isActive) {
+        await pipelinesApi.deactivatePipeline(pipelineId);
+      } else {
+        await pipelinesApi.activatePipeline(pipelineId);
+      }
       setPipelines((prev) =>
         prev.map((p) => (p.id === pipelineId ? { ...p, isActive: !isActive } : p))
       );
@@ -201,6 +271,37 @@ export function Pipelines() {
     setSelectedPipelines([]);
   };
 
+  const getScanStatusKey = (status?: string) => {
+    if (!status) return null;
+    const normalized = status.toLowerCase().replace(/\s+/g, "");
+    switch (normalized) {
+      case "running":
+        return "running";
+      case "success":
+        return "success";
+      case "failed":
+        return "failed";
+      case "completedwitherrors":
+        return "completedWithErrors";
+      case "cancelled":
+        return "cancelled";
+      default:
+        return "unknown";
+    }
+  };
+
+  const renderLastScan = (lastScanAt?: string) => {
+    if (!lastScanAt) return t("pipelines.never", "Never");
+    const relative = formatTimeAgo(lastScanAt, t);
+    const exact = new Date(lastScanAt).toLocaleString();
+    return (
+      <div className="last-scan" title={exact}>
+        <div className="last-scan-relative">{relative}</div>
+        <div className="last-scan-exact">{exact}</div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div className="pipelines-loading">{t("common.loading")}</div>;
   }
@@ -251,8 +352,19 @@ export function Pipelines() {
             {isAdmin && <span>{t("common.actions")}</span>}
           </div>
 
-          {pipelines.map((pipeline) => (
-            <div key={pipeline.id} className={`pipeline-row ${!pipeline.isActive ? "inactive" : ""}`}>
+          {pipelines.map((pipeline) => {
+            // Check if there's an active analysis for this pipeline
+            const isAnalyzing = Array.from(activeAnalyses.values()).some(
+              a => a.pipelineId === pipeline.id
+            );
+            const effectiveStatus = isAnalyzing ? "Running" : pipeline.lastScanStatus;
+            const scanStatusKey = getScanStatusKey(effectiveStatus);
+            return (
+            <div
+              key={pipeline.id}
+              className={`pipeline-row clickable ${!pipeline.isActive ? "inactive" : ""}`}
+              onClick={() => navigate(`/pipelines/${pipeline.id}`)}
+            >
               <div className="pipeline-name">
                 <span className="name">{pipeline.pipelineName}</span>
                 <span className="org text-muted">{pipeline.adoConnectionName}</span>
@@ -260,12 +372,19 @@ export function Pipelines() {
               <span>{pipeline.projectName}</span>
               <span>{pipeline.azureConnectionName}</span>
               <span>
-                <span className={`status-badge ${pipeline.isActive ? "status-active" : "status-inactive"}`}>
-                  {pipeline.isActive ? t("common.active") : t("common.inactive")}
-                </span>
+                <div className="status-stack">
+                  <span className={`status-badge ${pipeline.isActive ? "status-active" : "status-inactive"}`}>
+                    {pipeline.isActive ? t("common.active") : t("common.inactive")}
+                  </span>
+                  {effectiveStatus && scanStatusKey && (
+                    <span className={`scan-status-badge scan-${scanStatusKey}`}>
+                      {t(`pipelines.scanStatus.${scanStatusKey}`, effectiveStatus)}
+                    </span>
+                  )}
+                </div>
               </span>
-              <span className="text-muted">
-                {pipeline.lastScanAt || t("pipelines.never", "Never")}
+              <span>
+                {renderLastScan(pipeline.lastScanAt)}
               </span>
               <span>
                 {pipeline.driftCount !== undefined && pipeline.driftCount > 0 ? (
@@ -277,7 +396,7 @@ export function Pipelines() {
                 )}
               </span>
               {isAdmin && (
-                <div className="pipeline-actions">
+                <div className="pipeline-actions" onClick={(e) => e.stopPropagation()}>
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={() => handleScan(pipeline.id)}
@@ -303,7 +422,8 @@ export function Pipelines() {
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 

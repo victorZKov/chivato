@@ -90,15 +90,56 @@ public class StorageQueueConsumer : BackgroundService, IMessageConsumer
         try
         {
             var messageBody = queueMessage.Body.ToString();
-            message = JsonSerializer.Deserialize<DriftAnalysisMessage>(messageBody,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (message == null)
+            _logger.LogDebug("Message body: {Body}", messageBody);
+            
+            // Try to deserialize with flexible JSON options
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            
+            // The API handler sends a record with these properties:
+            // CorrelationId, TenantId, PipelineId, AnalyzeAll, TriggeredBy, QueuedAt
+            using var doc = JsonDocument.Parse(messageBody);
+            var root = doc.RootElement;
+            
+            var correlationId = root.TryGetProperty("correlationId", out var corrProp) 
+                ? corrProp.GetString() ?? Guid.NewGuid().ToString()
+                : root.TryGetProperty("CorrelationId", out corrProp) 
+                    ? corrProp.GetString() ?? Guid.NewGuid().ToString()
+                    : Guid.NewGuid().ToString();
+            
+            var tenantId = root.TryGetProperty("tenantId", out var tenantProp) 
+                ? tenantProp.GetString() ?? string.Empty
+                : root.TryGetProperty("TenantId", out tenantProp) 
+                    ? tenantProp.GetString() ?? string.Empty
+                    : string.Empty;
+            
+            var pipelineId = root.TryGetProperty("pipelineId", out var pipeProp) 
+                ? pipeProp.GetString()
+                : root.TryGetProperty("PipelineId", out pipeProp) 
+                    ? pipeProp.GetString()
+                    : null;
+            
+            var triggeredBy = root.TryGetProperty("triggeredBy", out var triggerProp) 
+                ? triggerProp.GetString()
+                : root.TryGetProperty("TriggeredBy", out triggerProp) 
+                    ? triggerProp.GetString()
+                    : root.TryGetProperty("initiatedBy", out triggerProp)
+                        ? triggerProp.GetString()
+                        : root.TryGetProperty("InitiatedBy", out triggerProp)
+                            ? triggerProp.GetString()
+                            : null;
+            
+            message = new DriftAnalysisMessage
             {
-                _logger.LogWarning("Failed to deserialize message {MessageId}", queueMessage.MessageId);
-                await _queueClient.DeleteMessageAsync(queueMessage.MessageId, queueMessage.PopReceipt, cancellationToken);
-                return;
-            }
+                CorrelationId = correlationId,
+                TenantId = tenantId,
+                PipelineId = pipelineId ?? string.Empty,
+                InitiatedBy = triggeredBy,
+                CreatedAt = DateTimeOffset.UtcNow,
+                TriggerType = "AdHoc"
+            };
+            
+            _logger.LogInformation("Parsed message: CorrelationId={CorrelationId}, PipelineId={PipelineId}, TenantId={TenantId}",
+                message.CorrelationId, message.PipelineId, message.TenantId);
 
             // Update status to processing
             await UpdateAnalysisStatusAsync(message.CorrelationId, "processing", message.TenantId);

@@ -9,6 +9,7 @@ public class SignalRController : ControllerBase
 {
     private readonly string? _connectionString;
     private readonly ILogger<SignalRController> _logger;
+    private readonly ServiceManager? _serviceManager;
     private const string HubName = "chivato";
 
     public SignalRController(
@@ -17,6 +18,17 @@ public class SignalRController : ControllerBase
     {
         _connectionString = configuration["AzureSignalRConnectionString"];
         _logger = logger;
+
+        if (!string.IsNullOrEmpty(_connectionString))
+        {
+            _serviceManager = new ServiceManagerBuilder()
+                .WithOptions(opt =>
+                {
+                    opt.ConnectionString = _connectionString;
+                    opt.ServiceTransportType = ServiceTransportType.Transient;
+                })
+                .BuildServiceManager();
+        }
     }
 
     /// <summary>
@@ -25,27 +37,24 @@ public class SignalRController : ControllerBase
     [HttpPost("negotiate")]
     public async Task<IActionResult> Negotiate([FromQuery] string? userId = null)
     {
-        if (string.IsNullOrEmpty(_connectionString))
+        if (string.IsNullOrEmpty(_connectionString) || _serviceManager == null)
         {
             return BadRequest(new { error = "SignalR not configured" });
         }
 
         try
         {
-            var serviceManager = new ServiceManagerBuilder()
-                .WithOptions(opt => opt.ConnectionString = _connectionString)
-                .BuildServiceManager();
-
-            var negotiationResponse = await serviceManager.CreateHubContextAsync(HubName, default);
-
-            // Generate client access URL and token
-            var url = $"{GetSignalREndpoint()}/client/?hub={HubName}";
-            var accessToken = await GenerateAccessTokenAsync(serviceManager, userId);
+            // Get the hub context and generate negotiation response
+            var hubContext = await _serviceManager.CreateHubContextAsync(HubName, default);
+            var negotiateResponse = await hubContext.NegotiateAsync(new NegotiationOptions 
+            { 
+                UserId = userId 
+            });
 
             return Ok(new
             {
-                url,
-                accessToken
+                url = negotiateResponse.Url,
+                accessToken = negotiateResponse.AccessToken
             });
         }
         catch (Exception ex)
@@ -61,7 +70,7 @@ public class SignalRController : ControllerBase
     [HttpPost("groups/join")]
     public async Task<IActionResult> JoinGroup([FromBody] GroupRequest request)
     {
-        if (string.IsNullOrEmpty(_connectionString))
+        if (string.IsNullOrEmpty(_connectionString) || _serviceManager == null)
         {
             return BadRequest(new { error = "SignalR not configured" });
         }
@@ -73,11 +82,7 @@ public class SignalRController : ControllerBase
 
         try
         {
-            var serviceManager = new ServiceManagerBuilder()
-                .WithOptions(opt => opt.ConnectionString = _connectionString)
-                .BuildServiceManager();
-
-            var hubContext = await serviceManager.CreateHubContextAsync(HubName, default);
+            var hubContext = await _serviceManager.CreateHubContextAsync(HubName, default);
             await hubContext.Groups.AddToGroupAsync(request.ConnectionId, request.GroupName);
 
             _logger.LogInformation("Connection {ConnectionId} joined group {GroupName}",
@@ -98,7 +103,7 @@ public class SignalRController : ControllerBase
     [HttpPost("groups/leave")]
     public async Task<IActionResult> LeaveGroup([FromBody] GroupRequest request)
     {
-        if (string.IsNullOrEmpty(_connectionString))
+        if (string.IsNullOrEmpty(_connectionString) || _serviceManager == null)
         {
             return BadRequest(new { error = "SignalR not configured" });
         }
@@ -110,11 +115,7 @@ public class SignalRController : ControllerBase
 
         try
         {
-            var serviceManager = new ServiceManagerBuilder()
-                .WithOptions(opt => opt.ConnectionString = _connectionString)
-                .BuildServiceManager();
-
-            var hubContext = await serviceManager.CreateHubContextAsync(HubName, default);
+            var hubContext = await _serviceManager.CreateHubContextAsync(HubName, default);
             await hubContext.Groups.RemoveFromGroupAsync(request.ConnectionId, request.GroupName);
 
             _logger.LogInformation("Connection {ConnectionId} left group {GroupName}",
@@ -140,34 +141,6 @@ public class SignalRController : ControllerBase
             configured = !string.IsNullOrEmpty(_connectionString),
             hubName = HubName
         });
-    }
-
-    private string GetSignalREndpoint()
-    {
-        if (string.IsNullOrEmpty(_connectionString))
-            return string.Empty;
-
-        // Parse endpoint from connection string
-        var parts = _connectionString.Split(';');
-        foreach (var part in parts)
-        {
-            if (part.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase))
-            {
-                return part.Substring("Endpoint=".Length).TrimEnd('/');
-            }
-        }
-        return string.Empty;
-    }
-
-    private async Task<string> GenerateAccessTokenAsync(ServiceManager serviceManager, string? userId)
-    {
-        // For serverless mode, we need to generate a token
-        // This is a simplified implementation - in production you'd use proper JWT generation
-        var hubContext = await serviceManager.CreateHubContextAsync(HubName, default);
-
-        // The actual token generation would depend on your authentication setup
-        // For now, return a placeholder that indicates the client should connect
-        return $"token-{userId ?? "anonymous"}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
     }
 }
 

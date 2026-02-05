@@ -17,9 +17,22 @@ var storageConnectionString = Environment.GetEnvironmentVariable("StorageConnect
     ?? "UseDevelopmentStorage=true";
 var keyVaultUrl = Environment.GetEnvironmentVariable("KeyVaultUrl")
     ?? "https://your-keyvault.vault.azure.net/";
+var serviceBusConnectionString = Environment.GetEnvironmentVariable("ServiceBusConnectionString");
 
 builder.Services.AddSingleton<IStorageService>(_ => new StorageService(storageConnectionString));
 builder.Services.AddSingleton<IKeyVaultService>(_ => new KeyVaultService(keyVaultUrl));
+
+// Message Queue Service (for triggering worker)
+if (!string.IsNullOrEmpty(serviceBusConnectionString))
+{
+    builder.Services.AddSingleton<Chivato.Shared.Services.IMessageQueueService>(
+        _ => new Chivato.Shared.Services.ServiceBusMessageQueueService(serviceBusConnectionString));
+}
+else
+{
+    // Fallback or warning - for now we register null or throw if critical
+    // Ideally we should have a mock or check connection string presence
+}
 
 // Core services
 builder.Services.AddSingleton<IAdoService, AdoService>();

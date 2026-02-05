@@ -1,4 +1,4 @@
-import type { Configuration } from "@azure/msal-browser";
+import type { Configuration, IPublicClientApplication } from "@azure/msal-browser";
 import { LogLevel, PublicClientApplication } from "@azure/msal-browser";
 
 export const msalConfig: Configuration = {
@@ -39,9 +39,32 @@ export const loginRequest = {
   scopes: ["User.Read", "openid", "profile", "email"],
 };
 
+// Note: Using the same scopes as login since the API doesn't validate tokens yet
+// To enable API token validation, configure the Application ID URI in Azure AD
+// and set up JWT authentication in the API
 export const apiRequest = {
-  scopes: [`api://${import.meta.env.VITE_ENTRA_CLIENT_ID}/access_as_user`],
+  scopes: ["User.Read", "openid", "profile", "email"],
 };
 
-// Create and export MSAL instance
-export const msalInstance = new PublicClientApplication(msalConfig);
+// Create singleton MSAL instance
+let msalInstance: IPublicClientApplication | null = null;
+let initializationPromise: Promise<void> | null = null;
+
+export function getMsalInstance(): IPublicClientApplication {
+  if (!msalInstance) {
+    msalInstance = new PublicClientApplication(msalConfig);
+  }
+  return msalInstance;
+}
+
+export async function ensureMsalInitialized(): Promise<IPublicClientApplication> {
+  const instance = getMsalInstance();
+  if (!initializationPromise) {
+    initializationPromise = (instance as PublicClientApplication).initialize();
+  }
+  await initializationPromise;
+  return instance;
+}
+
+// Legacy export for backward compatibility - DO NOT USE in new code
+export { msalInstance };

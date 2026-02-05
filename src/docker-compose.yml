@@ -46,9 +46,12 @@ services:
       - StorageConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
       - KeyVaultUrl=https://local-keyvault.vault.azure.net/
       - ServiceBusConnectionString=${SERVICEBUS_CONNECTION_STRING:-}
+      - AzureSignalRConnectionString=${SIGNALR_CONNECTION_STRING:-}
       - AzureAd__TenantId=${AZURE_TENANT_ID:-c519d036-58f9-406a-bba0-1fdddea8d88e}
       - AzureAd__ClientId=${AZURE_CLIENT_ID:-6053ddd0-9d36-4d2d-9675-db211cc7bb03}
       - Cors__AllowedOrigins=http://localhost:5280
+    volumes:
+      - api-data:/app/data
     depends_on:
       azurite:
         condition: service_healthy
@@ -60,22 +63,58 @@ services:
       start_period: 30s
 
   # ==========================================
-  # Worker - Drift Analysis Processor
+  # Worker - Drift Analysis Processor (DEPRECATED - use iac-worker instead)
   # ==========================================
-  # Uses Azure Storage Queue (Azurite) for local development
-  # Uses Azure Service Bus in production when configured
-  worker:
+  # This worker is kept for backwards compatibility but iac-worker should be used
+  # as it properly triggers ADO pipelines for terraform plan analysis
+  # Uncomment to enable if needed for specific use cases
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: worker/Chivato.Worker/Dockerfile
+  #   container_name: chivato-worker
+  #   environment:
+  #     - DOTNET_ENVIRONMENT=Development
+  #     - StorageConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
+  #     - KeyVaultUrl=https://local-keyvault.vault.azure.net/
+  #     - ServiceBusConnectionString=${SERVICEBUS_CONNECTION_STRING:-}
+  #     - AzureSignalRConnectionString=${SIGNALR_CONNECTION_STRING:-}
+  #     - ADO_PAT=${ADO_PAT:-}
+  #     - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+  #     - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+  #     - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+  #   depends_on:
+  #     azurite:
+  #       condition: service_healthy
+  #     api:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
+  # ==========================================
+  # IaC Worker - Terraform/Bicep Analysis Processor
+  # ==========================================
+  # Runs terraform plan to detect infrastructure drift
+  # Requires Terraform, Git, and Azure CLI
+  iac-worker:
     build:
       context: .
-      dockerfile: worker/Chivato.Worker/Dockerfile
-    container_name: chivato-worker
+      dockerfile: worker/Chivato.IacWorker/Dockerfile
+    container_name: chivato-iac-worker
     environment:
       - DOTNET_ENVIRONMENT=Development
       - StorageConnectionString=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
       - KeyVaultUrl=https://local-keyvault.vault.azure.net/
-      # ServiceBusConnectionString - leave empty to use Storage Queue (Azurite)
       - ServiceBusConnectionString=${SERVICEBUS_CONNECTION_STRING:-}
       - AzureSignalRConnectionString=${SIGNALR_CONNECTION_STRING:-}
+      - WorkingDirectory=/tmp/chivato-iac
+      # ADO PAT for cloning repositories (required for IaC analysis)
+      - ADO_PAT=${ADO_PAT:-}
+      # Azure OpenAI for AI-powered drift analysis
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+    volumes:
+      - iac-worker-data:/tmp/chivato-iac
     depends_on:
       azurite:
         condition: service_healthy
@@ -112,6 +151,10 @@ services:
 volumes:
   azurite-data:
     name: chivato-azurite-data
+  api-data:
+    name: chivato-api-data
+  iac-worker-data:
+    name: chivato-iac-worker-data
 
 # ==========================================
 # Networks

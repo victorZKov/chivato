@@ -9,14 +9,14 @@ namespace Chivato.Shared.Services;
 public interface IMessageQueueService
 {
     /// <summary>
-    /// Send a drift analysis message to the queue
+    /// Send an IaC analysis message to the queue
     /// </summary>
-    Task SendAnalysisMessageAsync(DriftAnalysisMessage message);
+    Task SendAnalysisMessageAsync(IacAnalysisMessage message);
 
     /// <summary>
-    /// Send multiple analysis messages (batch)
+    /// Send multiple IaC analysis messages (batch)
     /// </summary>
-    Task SendAnalysisMessagesAsync(IEnumerable<DriftAnalysisMessage> messages);
+    Task SendAnalysisMessagesAsync(IEnumerable<IacAnalysisMessage> messages);
 }
 
 /// <summary>
