@@ -18,7 +18,7 @@
 
     <!-- Azure DevOps -->
     <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="19.235.0-preview" />
-    <PackageReference Include="Azure.ResourceManager" Version="1.13.0" />
+    <PackageReference Include="Azure.ResourceManager" Version="1.13.2" />
 
     <!-- SignalR -->
     <PackageReference Include="Microsoft.Azure.SignalR.Management" Version="1.25.0" />
