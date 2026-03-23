@@ -17,7 +17,7 @@
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
 
     <!-- Azure DevOps -->
-    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="19.235.0-preview" />
+    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="20.256.2" />
     <PackageReference Include="Azure.ResourceManager" Version="1.13.0" />
 
     <!-- SignalR -->
